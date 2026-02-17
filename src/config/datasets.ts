@@ -13,6 +13,7 @@ export type DatasetId =
   | "p7k6-2pm8"
   | "rv63-53db"
   | "tvpp-9vvx"
+  | "5crt-au7u"
   | "tg4x-b46p";
 
 export interface DatasetMeta {
@@ -107,6 +108,13 @@ export const DATASETS: Record<DatasetId, DatasetMeta> = {
     moduleHints: ["events"],
     url: "https://data.cityofnewyork.us/City-Government/NYC-Permitted-Event-Information/tvpp-9vvx",
     ttlSeconds: 1800,
+  },
+  "5crt-au7u": {
+    id: "5crt-au7u",
+    name: "Community Districts",
+    moduleHints: ["events"],
+    url: "https://data.cityofnewyork.us/City-Government/Community-Districts/5crt-au7u",
+    ttlSeconds: 86400,
   },
   "tg4x-b46p": {
     id: "tg4x-b46p",

@@ -12,4 +12,5 @@
 - [DSNY Frequencies (rv63-53db)](https://data.cityofnewyork.us/City-Government/DSNY-Frequencies/rv63-53db)
 - [Garbage Collection Schedule (p7k6-2pm8)](https://data.cityofnewyork.us/City-Government/Garbage-Collection-Schedule/p7k6-2pm8)
 - [NYC Permitted Event Information (tvpp-9vvx)](https://data.cityofnewyork.us/City-Government/NYC-Permitted-Event-Information/tvpp-9vvx)
+- [Community Districts (5crt-au7u)](https://data.cityofnewyork.us/City-Government/Community-Districts/5crt-au7u)
 - [Film Permits (tg4x-b46p)](https://data.cityofnewyork.us/City-Government/Film-Permits/tg4x-b46p)

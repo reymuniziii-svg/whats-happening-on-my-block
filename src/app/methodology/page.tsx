@@ -28,6 +28,21 @@ export default function MethodologyPage() {
           <li>Street works: active now first, then longer duration, then proximity.</li>
           <li>Collisions: hotspot derived by clustering collisions within 75m.</li>
           <li>Right now strip: active closures + active street works + active film permits.</li>
+          <li>
+            Events: borough feed is locally filtered using community district match, closure signal, and nearby street-text relevance.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Severity scale and impact framing</h2>
+        <p>Each module shows Low / Medium / High severity plus a “What this means for you” sentence.</p>
+        <ul>
+          <li>Right now: Low 0 active disruptions, Medium 1-2, High 3+.</li>
+          <li>Street works: Low 0-1 active disruptions, Medium 2-4, High 5+.</li>
+          <li>Collisions: High if injuries 8+ or crashes 40+; Medium if injuries 3+ or crashes 15+.</li>
+          <li>311 pulse: High if requests 350+ or 30-day increase 120+; Medium if requests 150+ or increase 50+.</li>
+          <li>Events: Low 0-7 locally relevant events, Medium 8-19, High 20+.</li>
         </ul>
       </section>
 

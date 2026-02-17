@@ -1,4 +1,5 @@
 import type { Module } from "@/types/brief";
+import { interpretModule } from "@/lib/insights/module-interpretation";
 
 interface ModuleCardProps {
   module: Module;
@@ -107,6 +108,7 @@ export function ModuleCard({ module }: ModuleCardProps) {
   const label = moduleLabelFor(module.id);
   const description = MODULE_DESCRIPTIONS[module.id];
   const warningCopy = module.warnings?.length ? summarizeWarnings(module.warnings) : null;
+  const interpretation = interpretModule(module);
 
   return (
     <section className="module-card" id={module.id} aria-labelledby={`${module.id}-title`}>
@@ -115,10 +117,19 @@ export function ModuleCard({ module }: ModuleCardProps) {
           <h2 id={`${module.id}-title`}>{label}</h2>
           <p className="module-subtitle">{description}</p>
         </div>
-        <span className={`status-chip ${module.status}`}>{statusLabel(module.status)}</span>
+        <div className="module-chip-stack">
+          <span className={`status-chip ${module.status}`}>{statusLabel(module.status)}</span>
+          <span className={`severity-chip ${interpretation.severity}`}>Severity {interpretation.severityLabel}</span>
+        </div>
       </header>
 
       <p className="module-headline">{module.headline}</p>
+      <p className="module-impact">
+        <strong>What this means for you:</strong> {interpretation.impact}
+      </p>
+      <p className="module-thresholds">
+        <strong>Severity thresholds:</strong> {interpretation.thresholdNote}
+      </p>
 
       <div className="module-stats" role="list">
         {module.stats.map((stat) => (

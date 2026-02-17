@@ -311,6 +311,12 @@ main {
   max-width: 52ch;
 }
 
+.module-chip-stack {
+  display: grid;
+  justify-items: end;
+  gap: 0.34rem;
+}
+
 .status-chip {
   text-transform: uppercase;
   font-size: 0.71rem;
@@ -338,9 +344,50 @@ main {
   background: #ffece8;
 }
 
+.severity-chip {
+  font-size: 0.71rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.18rem 0.52rem;
+  text-transform: uppercase;
+}
+
+.severity-chip.low {
+  color: #0f5b46;
+  border-color: #9fd0bc;
+  background: #e7f7f0;
+}
+
+.severity-chip.medium {
+  color: #7a4a00;
+  border-color: #eac88d;
+  background: #fff6e7;
+}
+
+.severity-chip.high {
+  color: #8b2d1f;
+  border-color: #f2c0b8;
+  background: #ffece8;
+}
+
 .module-headline {
   margin: 0.6rem 0 0.8rem;
   line-height: 1.5;
+}
+
+.module-impact {
+  margin: 0 0 0.42rem;
+  line-height: 1.45;
+  color: #24384a;
+  font-size: 0.92rem;
+}
+
+.module-thresholds {
+  margin: 0 0 0.66rem;
+  line-height: 1.4;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .module-stats {

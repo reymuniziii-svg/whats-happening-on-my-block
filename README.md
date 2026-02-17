@@ -19,6 +19,8 @@ Given one NYC address (or BBL), the app returns a single-page brief with:
 Every module shows:
 
 - Plain-English headline
+- "What this means for you" impact sentence
+- Low/Medium/High severity chip with transparent thresholds
 - 2-4 key metrics
 - Expandable details list
 - Data source links
