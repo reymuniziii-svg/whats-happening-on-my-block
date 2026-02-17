@@ -41,6 +41,7 @@ Every module shows:
 - `GET /api/brief?address=...`
 - `GET /api/brief?bbl=...`
 - `GET /api/brief/by-block/{block_id}`
+- `GET /api/health`
 
 ## Data model
 
@@ -83,6 +84,13 @@ Optional future cache backend:
 
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
+
+## Production reliability setup
+
+- Deploy on Vercel and set `main` as production branch for auto-deploys.
+- Keep the CI workflow green (`.github/workflows/ci.yml`) to block broken merges.
+- Monitor `GET /api/health` with an external uptime monitor (UptimeRobot or Better Stack).
+- The brief page has route-level loading/error boundaries, and each module degrades independently if a source fails.
 
 ## Tests
 

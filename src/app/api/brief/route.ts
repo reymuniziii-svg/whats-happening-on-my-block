@@ -6,6 +6,9 @@ import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
 import type { ResolvedLocation } from "@/types/brief";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 function clientKey(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || "unknown-client";
@@ -69,6 +72,10 @@ export async function GET(request: NextRequest) {
       block_id: blockId,
       share_path: `/b/${blockId}`,
       brief,
+    }, {
+      headers: {
+        "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+      },
     });
   } catch (error) {
     return NextResponse.json(

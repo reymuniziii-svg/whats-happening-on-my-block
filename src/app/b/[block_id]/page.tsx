@@ -5,7 +5,10 @@ import { decodeBlockId } from "@/lib/brief/share-id";
 import { MapPanel } from "@/components/MapPanel";
 import { ModuleCard } from "@/components/ModuleCard";
 import { ShareButton } from "@/components/ShareButton";
-import type { ResolvedLocation } from "@/types/brief";
+import type { BriefResponse, ResolvedLocation } from "@/types/brief";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 interface BriefPageProps {
   params: Promise<{ block_id: string }>;
@@ -33,7 +36,27 @@ export default async function BriefPage({ params }: BriefPageProps) {
     notFound();
   }
 
-  const brief = await buildBrief({ location });
+  let brief: BriefResponse;
+  try {
+    brief = await buildBrief({ location });
+  } catch {
+    return (
+      <main className="content-page">
+        <p className="eyebrow">Temporary Issue</p>
+        <h1>Block brief is loading slower than expected.</h1>
+        <p>
+          The page is up, but live data aggregation failed for this request. Please refresh in a few seconds, or use the API endpoint
+          directly.
+        </p>
+        <p>
+          <a href={`/api/brief/by-block/${block_id}`}>Open raw brief JSON</a>
+        </p>
+        <p>
+          <Link href="/">Back to search</Link>
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main className="brief-page">

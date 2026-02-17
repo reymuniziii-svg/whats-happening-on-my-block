@@ -24,7 +24,10 @@ export async function geosearchResolve(text: string): Promise<ResolvedLocation |
     headers: {
       Accept: "application/json",
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: {
+      revalidate: 86400,
+    },
   });
 
   if (!response.ok) {

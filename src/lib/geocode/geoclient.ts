@@ -72,7 +72,10 @@ export async function geoclientResolveAddress(address: string): Promise<Resolved
     headers: {
       Accept: "application/json",
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: {
+      revalidate: 86400,
+    },
   });
 
   if (!response.ok) {
@@ -138,7 +141,10 @@ export async function geoclientResolveBbl(bbl: string): Promise<ResolvedLocation
     headers: {
       Accept: "application/json",
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: {
+      revalidate: 86400,
+    },
   });
 
   if (!response.ok) {

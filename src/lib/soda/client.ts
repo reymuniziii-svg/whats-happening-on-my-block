@@ -11,6 +11,10 @@ export interface SodaQuery {
   group?: string;
 }
 
+export interface SodaFetchOptions {
+  cacheSeconds?: number;
+}
+
 function toQueryString(query: SodaQuery): string {
   const params = new URLSearchParams();
   if (query.select) params.set("$select", query.select);
@@ -21,7 +25,7 @@ function toQueryString(query: SodaQuery): string {
   return params.toString();
 }
 
-export async function sodaFetch<T>(datasetId: string, query: SodaQuery): Promise<T[]> {
+export async function sodaFetch<T>(datasetId: string, query: SodaQuery, options: SodaFetchOptions = {}): Promise<T[]> {
   return concurrencyLimit(async () => {
     const queryString = toQueryString(query);
     const url = `${BASE_URL}/${datasetId}.json?${queryString}`;
@@ -40,7 +44,11 @@ export async function sodaFetch<T>(datasetId: string, query: SodaQuery): Promise
     try {
       const response = await fetch(url, {
         headers,
-        cache: "no-store",
+        // Use Next's data cache to reduce SODA load and improve serverless reliability.
+        cache: "force-cache",
+        next: {
+          revalidate: options.cacheSeconds ?? 300,
+        },
         signal: controller.signal,
       });
 
