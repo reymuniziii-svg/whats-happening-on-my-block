@@ -13,5 +13,15 @@ const DynamicBriefMap = dynamic(() => import("@/components/BriefMap").then((mod)
 });
 
 export function MapPanel({ map }: MapPanelProps) {
-  return <DynamicBriefMap map={map} />;
+  return (
+    <section>
+      <DynamicBriefMap map={map} />
+      <div className="map-legend" aria-label="Map legend">
+        <span>Pin: your query location</span>
+        <span>Green ring: {map.radius_primary_m}m</span>
+        <span>Orange ring: {map.radius_secondary_m}m</span>
+        <span>Lines/dots: mapped dataset records</span>
+      </div>
+    </section>
+  );
 }

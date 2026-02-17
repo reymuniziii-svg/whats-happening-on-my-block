@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { buildBrief } from "@/lib/brief/build-brief";
 import { decodeBlockId } from "@/lib/brief/share-id";
 import { MapPanel } from "@/components/MapPanel";
-import { ModuleCard } from "@/components/ModuleCard";
+import { ModuleCard, moduleLabelFor } from "@/components/ModuleCard";
 import { ShareButton } from "@/components/ShareButton";
+import { BriefInsights } from "@/components/BriefInsights";
 import type { BriefResponse, ResolvedLocation } from "@/types/brief";
 
 export const runtime = "nodejs";
@@ -78,6 +79,16 @@ export default async function BriefPage({ params }: BriefPageProps) {
           <Link href="/methodology">Methodology</Link>
         </div>
       </header>
+
+      <BriefInsights brief={brief} />
+
+      <nav className="module-nav" aria-label="Jump to module">
+        {brief.modules.map((module) => (
+          <a key={module.id} href={`#${module.id}`}>
+            {moduleLabelFor(module.id)}
+          </a>
+        ))}
+      </nav>
 
       <MapPanel map={brief.map} />
 
