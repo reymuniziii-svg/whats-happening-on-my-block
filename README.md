@@ -2,6 +2,8 @@
 
 A public, mobile-first NYC address tool that generates a shareable block brief in seconds.
 
+Live app: https://whats-happening-on-my-block.vercel.app
+
 Repo: https://github.com/reymuniziii-svg/whats-happening-on-my-block
 
 ## What it does
