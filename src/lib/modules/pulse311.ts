@@ -14,6 +14,11 @@ interface ComplaintTypeRow {
   count?: string;
 }
 
+function datasetWarning(datasetId: string, error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  return `${datasetId}: ${message}`;
+}
+
 function minusDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setUTCDate(d.getUTCDate() - days);
@@ -40,7 +45,7 @@ export async function build311Module(context: ModuleBuildContext): Promise<Modul
     const priorKey = `erm2-nwe9:${context.blockKey}:prior:${priorStart}:${context.window30dIso}`;
     const topKey = `erm2-nwe9:${context.blockKey}:top:${context.window30dIso}`;
 
-    const [currentRows, priorRows, topRows] = await Promise.all([
+    const results = await Promise.allSettled([
       memoryCache.getOrSet(currentKey, 900, () =>
         sodaFetch<CountRow>("erm2-nwe9", {
           select: "count(*) as count",
@@ -66,6 +71,35 @@ export async function build311Module(context: ModuleBuildContext): Promise<Modul
       ),
     ]);
 
+    if (results.every((result) => result.status === "rejected")) {
+      return unavailableModule(
+        "311_pulse",
+        "311 request data is temporarily unavailable.",
+        sources,
+        methodology,
+        results
+          .map((result) => (result.status === "rejected" ? datasetWarning("erm2-nwe9", result.reason) : undefined))
+          .filter(Boolean)
+          .join(" | "),
+      );
+    }
+
+    const warnings: string[] = [];
+    const currentRows = results[0].status === "fulfilled" ? results[0].value : [];
+    if (results[0].status === "rejected") {
+      warnings.push(datasetWarning("erm2-nwe9", results[0].reason));
+    }
+
+    const priorRows = results[1].status === "fulfilled" ? results[1].value : [];
+    if (results[1].status === "rejected") {
+      warnings.push(datasetWarning("erm2-nwe9", results[1].reason));
+    }
+
+    const topRows = results[2].status === "fulfilled" ? results[2].value : [];
+    if (results[2].status === "rejected") {
+      warnings.push(datasetWarning("erm2-nwe9", results[2].reason));
+    }
+
     const currentCount = toNumber(currentRows[0]?.count);
     const priorCount = toNumber(priorRows[0]?.count);
     const delta = currentCount - priorCount;
@@ -79,7 +113,7 @@ export async function build311Module(context: ModuleBuildContext): Promise<Modul
         : "No 311 requests were found in this radius during the last 30 days.",
       sources,
       methodology,
-      "ok",
+      warnings.length ? "partial" : "ok",
     );
 
     moduleCard.stats = [
@@ -93,6 +127,10 @@ export async function build311Module(context: ModuleBuildContext): Promise<Modul
       subtitle: `${toNumber(row.count)} requests`,
       source_dataset_id: "erm2-nwe9",
     }));
+
+    if (warnings.length > 0) {
+      moduleCard.warnings = warnings;
+    }
 
     return moduleCard;
   } catch (error) {

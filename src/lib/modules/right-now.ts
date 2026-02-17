@@ -37,6 +37,11 @@ interface ActiveFilmRow {
   zipcode_s?: string;
 }
 
+function datasetWarning(datasetId: string, error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  return `${datasetId}: ${message}`;
+}
+
 function nowBounds(nowIso: string): { now: string } {
   return { now: nowIso };
 }
@@ -79,7 +84,7 @@ export async function buildRightNowModule(context: ModuleBuildContext): Promise<
       compareIso("enddatetime", ">=", now),
     );
 
-    const [closureRows, workRows, filmRows] = await Promise.all([
+    const results = await Promise.allSettled([
       memoryCache.getOrSet(`rightnow:i6b5:${context.blockKey}:${now.slice(0, 13)}`, 900, () =>
         sodaFetch<ActiveClosureRow>("i6b5-j7bu", {
           select: "uniqueid, onstreetname, fromstreetname, tostreetname, work_start_date, work_end_date, purpose",
@@ -94,7 +99,7 @@ export async function buildRightNowModule(context: ModuleBuildContext): Promise<
             "permitnumber, permittypedesc, permitteename, onstreetname, fromstreetname, tostreetname, issuedworkstartdate, issuedworkenddate, wkt",
           where: workWhere,
           order: "issuedworkenddate ASC",
-          limit: 500,
+          limit: 350,
         }),
       ),
       memoryCache.getOrSet(`rightnow:film:${context.blockKey}:${now.slice(0, 13)}`, 1800, () =>
@@ -106,6 +111,33 @@ export async function buildRightNowModule(context: ModuleBuildContext): Promise<
         }),
       ),
     ]);
+
+    const warnings: string[] = [];
+
+    const closureRows = results[0].status === "fulfilled" ? results[0].value : [];
+    if (results[0].status === "rejected") {
+      warnings.push(datasetWarning("i6b5-j7bu", results[0].reason));
+    }
+
+    const workRows = results[1].status === "fulfilled" ? results[1].value : [];
+    if (results[1].status === "rejected") {
+      warnings.push(datasetWarning("tqtj-sjs8", results[1].reason));
+    }
+
+    const filmRows = results[2].status === "fulfilled" ? results[2].value : [];
+    if (results[2].status === "rejected") {
+      warnings.push(datasetWarning("tg4x-b46p", results[2].reason));
+    }
+
+    if (!closureRows.length && !workRows.length && !filmRows.length && warnings.length === 3) {
+      return unavailableModule(
+        "right_now",
+        "Live disruption strip is temporarily unavailable.",
+        sources,
+        methodology,
+        warnings.join(" | "),
+      );
+    }
 
     const nearbyWorks = workRows.filter((row) => {
       if (!row.wkt) {
@@ -128,7 +160,7 @@ export async function buildRightNowModule(context: ModuleBuildContext): Promise<
         : "Right now: no active closures, film permits, or street works were detected nearby.",
       sources,
       methodology,
-      "ok",
+      warnings.length ? "partial" : "ok",
     );
 
     moduleCard.stats = [
@@ -172,6 +204,9 @@ export async function buildRightNowModule(context: ModuleBuildContext): Promise<
 
     if (!context.location.zip_code) {
       moduleCard.coverage_note = "Film matching is borough-level because ZIP metadata was unavailable for this location.";
+    }
+    if (warnings.length > 0) {
+      moduleCard.warnings = warnings;
     }
 
     return moduleCard;

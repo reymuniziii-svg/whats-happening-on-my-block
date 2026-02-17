@@ -44,6 +44,11 @@ interface ViolationEntityRow {
   count?: string;
 }
 
+function datasetWarning(datasetId: string, error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  return `${datasetId}: ${message}`;
+}
+
 function splitBbl(bbl?: string): { block?: string; lot?: string } {
   if (!bbl) {
     return {};
@@ -121,7 +126,7 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
       binPredicate("bin", context.location.bin),
     );
 
-    const [issuanceRows, nowRows, complaintRows, violationAggRows, violationEntities] = await Promise.all([
+    const results = await Promise.allSettled([
       memoryCache.getOrSet(`ipu4-2q9a:${context.blockKey}:${context.window90dIso}`, 900, () =>
         sodaFetch<DobPermitIssuanceRow>("ipu4-2q9a", {
           select:
@@ -172,6 +177,46 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
         : Promise.resolve([] as ViolationEntityRow[]),
     ]);
 
+    if (results.every((result) => result.status === "rejected")) {
+      return unavailableModule(
+        "dob_permits",
+        "DOB permit and complaint data is temporarily unavailable.",
+        sources,
+        methodology,
+        results
+          .map((result) => (result.status === "rejected" ? datasetWarning("dob", result.reason) : undefined))
+          .filter(Boolean)
+          .join(" | "),
+      );
+    }
+
+    const moduleWarnings: string[] = [];
+
+    const issuanceRows = results[0].status === "fulfilled" ? results[0].value : [];
+    if (results[0].status === "rejected") {
+      moduleWarnings.push(datasetWarning("ipu4-2q9a", results[0].reason));
+    }
+
+    const nowRows = results[1].status === "fulfilled" ? results[1].value : [];
+    if (results[1].status === "rejected") {
+      moduleWarnings.push(datasetWarning("rbx6-tga4", results[1].reason));
+    }
+
+    const complaintRows = results[2].status === "fulfilled" ? results[2].value : [];
+    if (results[2].status === "rejected") {
+      moduleWarnings.push(datasetWarning("eabe-havv", results[2].reason));
+    }
+
+    const violationAggRows = results[3].status === "fulfilled" ? results[3].value : [];
+    if (results[3].status === "rejected") {
+      moduleWarnings.push(datasetWarning("6bgk-3dad", results[3].reason));
+    }
+
+    const violationEntities = results[4].status === "fulfilled" ? results[4].value : [];
+    if (results[4].status === "rejected") {
+      moduleWarnings.push(datasetWarning("6bgk-3dad", results[4].reason));
+    }
+
     const issuanceFiltered = issuanceRows.filter((row) => {
       const lat = Number(row.gis_latitude);
       const lon = Number(row.gis_longitude);
@@ -208,7 +253,7 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
         : "No recent DOB permit activity was found within the selected radius.",
       sources,
       methodology,
-      "ok",
+      moduleWarnings.length ? "partial" : "ok",
     );
 
     moduleCard.stats = [
@@ -249,17 +294,16 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
       })),
     ].slice(0, 12);
 
-    const warnings: string[] = [];
     if (!context.location.bin) {
-      warnings.push("BIN metadata missing; DOB complaints are likely undercounted for this query.");
+      moduleWarnings.push("BIN metadata missing; DOB complaints are likely undercounted for this query.");
     }
     if (!context.location.bbl) {
-      warnings.push("BBL metadata missing; ECB violation matching uses available BIN only.");
+      moduleWarnings.push("BBL metadata missing; ECB violation matching uses available BIN only.");
     }
 
-    if (warnings.length > 0) {
+    if (moduleWarnings.length > 0) {
       moduleCard.status = "partial";
-      moduleCard.warnings = warnings;
+      moduleCard.warnings = moduleWarnings;
       moduleCard.coverage_note = "Non-geocoded DOB datasets rely on BIN/BBL matching in v1.";
     }
 

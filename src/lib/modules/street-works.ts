@@ -42,6 +42,11 @@ interface OpeningPermitRow {
   issuedworkenddate?: string;
 }
 
+function datasetWarning(datasetId: string, error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  return `${datasetId}: ${message}`;
+}
+
 function isActiveNow(start?: string, end?: string, nowIso?: string): boolean {
   if (!start || !end || !nowIso) {
     return false;
@@ -95,7 +100,7 @@ export async function buildStreetWorksModule(context: ModuleBuildContext): Promi
       compareIso("issuedworkstartdate", "<=", next30),
     );
 
-    const [closureRows, permitRows, openingRows] = await Promise.all([
+    const results = await Promise.allSettled([
       memoryCache.getOrSet(`i6b5-j7bu:${context.blockKey}:${context.nowIso.slice(0, 10)}`, 900, () =>
         sodaFetch<StreetClosureRow>("i6b5-j7bu", {
           select:
@@ -110,8 +115,7 @@ export async function buildStreetWorksModule(context: ModuleBuildContext): Promi
           select:
             "permitnumber, permitstatusshortdesc, permittypedesc, permitteename, onstreetname, fromstreetname, tostreetname, issuedworkstartdate, issuedworkenddate, wkt",
           where: permitsWhere,
-          order: "issuedworkstartdate ASC",
-          limit: 1200,
+          limit: 900,
         }),
       ),
       memoryCache.getOrSet(`9jic-byiu:${context.blockKey}:${context.nowIso.slice(0, 10)}`, 900, () =>
@@ -119,11 +123,31 @@ export async function buildStreetWorksModule(context: ModuleBuildContext): Promi
           select:
             "permitnumber, permittypedesc, permitstatusshortdesc, permitteename, onstreetname, fromstreetname, tostreetname, issuedworkstartdate, issuedworkenddate",
           where: openingWhere,
-          order: "issuedworkstartdate ASC",
-          limit: 250,
+          limit: 200,
         }),
       ),
     ]);
+
+    const warnings: string[] = [];
+
+    const closureRows = results[0].status === "fulfilled" ? results[0].value : [];
+    if (results[0].status === "rejected") {
+      warnings.push(datasetWarning("i6b5-j7bu", results[0].reason));
+    }
+
+    const permitRows = results[1].status === "fulfilled" ? results[1].value : [];
+    if (results[1].status === "rejected") {
+      warnings.push(datasetWarning("tqtj-sjs8", results[1].reason));
+    }
+
+    const openingRows = results[2].status === "fulfilled" ? results[2].value : [];
+    if (results[2].status === "rejected") {
+      warnings.push(datasetWarning("9jic-byiu", results[2].reason));
+    }
+
+    if (!closureRows.length && !permitRows.length && !openingRows.length && warnings.length > 0) {
+      return unavailableModule("street_works", "Street works data is temporarily unavailable.", sources, methodology, warnings.join(" | "));
+    }
 
     const nearbyPermits = permitRows
       .map((row) => {
@@ -168,7 +192,7 @@ export async function buildStreetWorksModule(context: ModuleBuildContext): Promi
         : "No active street disruptions were found in the immediate radius right now.",
       sources,
       methodology,
-      "ok",
+      warnings.length ? "partial" : "ok",
     );
 
     moduleCard.stats = [
@@ -214,6 +238,9 @@ export async function buildStreetWorksModule(context: ModuleBuildContext): Promi
 
     moduleCard.coverage_note =
       "Street opening permits (9jic-byiu) are borough-filtered in v1 because precise geometry is not consistently exposed in this feed.";
+    if (warnings.length > 0) {
+      moduleCard.warnings = warnings;
+    }
 
     return moduleCard;
   } catch (error) {

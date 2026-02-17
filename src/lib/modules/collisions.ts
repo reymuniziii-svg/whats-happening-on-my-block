@@ -28,6 +28,11 @@ interface Cluster {
   centerLon: number;
 }
 
+function datasetWarning(datasetId: string, error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  return `${datasetId}: ${message}`;
+}
+
 function clusterCollisions(rows: CollisionRow[], clusterRadiusM: number): Cluster[] {
   const clusters: Cluster[] = [];
 
@@ -101,7 +106,7 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
     const aggregateKey = `h9gi-nx95:${context.blockKey}:agg:${context.window90dIso}`;
     const rowsKey = `h9gi-nx95:${context.blockKey}:rows:${context.window90dIso}`;
 
-    const [aggregateRows, detailRows] = await Promise.all([
+    const results = await Promise.allSettled([
       memoryCache.getOrSet(aggregateKey, 900, () =>
         sodaFetch<CollisionAggregateRow>("h9gi-nx95", {
           select: "count(*) as crashes, sum(number_of_persons_injured) as injuries",
@@ -120,9 +125,35 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
       ),
     ]);
 
+    if (results.every((result) => result.status === "rejected")) {
+      return unavailableModule(
+        "collisions",
+        "Collision data is temporarily unavailable.",
+        sources,
+        methodology,
+        results
+          .map((result) => (result.status === "rejected" ? datasetWarning("h9gi-nx95", result.reason) : undefined))
+          .filter(Boolean)
+          .join(" | "),
+      );
+    }
+
+    const warnings: string[] = [];
+    const aggregateRows = results[0].status === "fulfilled" ? results[0].value : [];
+    if (results[0].status === "rejected") {
+      warnings.push(datasetWarning("h9gi-nx95", results[0].reason));
+    }
+
+    const detailRows = results[1].status === "fulfilled" ? results[1].value : [];
+    if (results[1].status === "rejected") {
+      warnings.push(datasetWarning("h9gi-nx95", results[1].reason));
+    }
+
     const aggregate = aggregateRows[0];
-    const crashes = toNumber(aggregate?.crashes);
-    const injuries = toNumber(aggregate?.injuries);
+    const crashes = aggregate ? toNumber(aggregate.crashes) : detailRows.length;
+    const injuries = aggregate
+      ? toNumber(aggregate.injuries)
+      : detailRows.reduce((sum, row) => sum + toNumber(row.number_of_persons_injured), 0);
 
     const clusters = clusterCollisions(detailRows, 75).sort((a, b) => b.points.length - a.points.length);
     const hotspot = clusters[0];
@@ -136,7 +167,7 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
         : "No recent crashes were found in this radius during the last 90 days.",
       sources,
       methodology,
-      "ok",
+      warnings.length ? "partial" : "ok",
     );
 
     moduleCard.stats = [
@@ -162,6 +193,10 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
         lat: Number(row.latitude),
         lon: Number(row.longitude),
       }));
+
+    if (warnings.length > 0) {
+      moduleCard.warnings = warnings;
+    }
 
     return moduleCard;
   } catch (error) {
