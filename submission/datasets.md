@@ -1,0 +1,15 @@
+# NYC Open Data Datasets Used
+
+- [DOB Permit Issuance (ipu4-2q9a)](https://data.cityofnewyork.us/Housing-Development/DOB-Permit-Issuance/ipu4-2q9a)
+- [DOB NOW: Build – Approved Permits (rbx6-tga4)](https://data.cityofnewyork.us/Housing-Development/DOB-NOW-Build-Approved-Permits/rbx6-tga4)
+- [DOB Complaints Received (eabe-havv)](https://data.cityofnewyork.us/Housing-Development/DOB-Complaints-Received/eabe-havv)
+- [DOB ECB Violations (6bgk-3dad)](https://data.cityofnewyork.us/Housing-Development/DOB-ECB-Violations/6bgk-3dad)
+- [Street Construction Permits (2022-Present) (tqtj-sjs8)](https://data.cityofnewyork.us/Transportation/Street-Construction-Permits-2022-Present/tqtj-sjs8)
+- [Street Opening Permits (9jic-byiu)](https://data.cityofnewyork.us/Transportation/Street-Opening-Permits/9jic-byiu)
+- [Street Closures due to construction activities by Block (i6b5-j7bu)](https://data.cityofnewyork.us/Transportation/Street-Closures-due-to-construction-activities-by-/i6b5-j7bu)
+- [Motor Vehicle Collisions - Crashes (h9gi-nx95)](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95)
+- [311 Service Requests from 2020 to Present (erm2-nwe9)](https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-to-Present/erm2-nwe9)
+- [DSNY Frequencies (rv63-53db)](https://data.cityofnewyork.us/City-Government/DSNY-Frequencies/rv63-53db)
+- [Garbage Collection Schedule (p7k6-2pm8)](https://data.cityofnewyork.us/City-Government/Garbage-Collection-Schedule/p7k6-2pm8)
+- [NYC Permitted Event Information (tvpp-9vvx)](https://data.cityofnewyork.us/City-Government/NYC-Permitted-Event-Information/tvpp-9vvx)
+- [Film Permits (tg4x-b46p)](https://data.cityofnewyork.us/City-Government/Film-Permits/tg4x-b46p)
