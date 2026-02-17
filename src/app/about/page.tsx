@@ -24,6 +24,12 @@ export default function AboutPage() {
         This project is built on NYC Open Data using server-side SODA queries, resilient partial rendering, and transparent methodology
         notes so users can understand both the result and its limitations.
       </p>
+      <p>
+        Public repository:{" "}
+        <a href="https://github.com/reymuniziii-svg/whats-happening-on-my-block" target="_blank" rel="noreferrer">
+          github.com/reymuniziii-svg/whats-happening-on-my-block
+        </a>
+      </p>
 
       <p>
         <Link href="/">Back to search</Link> | <Link href="/methodology">View methodology</Link>

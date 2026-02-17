@@ -2,6 +2,8 @@
 
 A public, mobile-first NYC address tool that generates a shareable block brief in seconds.
 
+Repo: https://github.com/reymuniziii-svg/whats-happening-on-my-block
+
 ## What it does
 
 Given one NYC address (or BBL), the app returns a single-page brief with:

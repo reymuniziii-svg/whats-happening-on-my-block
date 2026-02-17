@@ -72,6 +72,15 @@ export default function MethodologyPage() {
         </ul>
       </section>
 
+      <section>
+        <h2>Source code</h2>
+        <p>
+          <a href="https://github.com/reymuniziii-svg/whats-happening-on-my-block" target="_blank" rel="noreferrer">
+            github.com/reymuniziii-svg/whats-happening-on-my-block
+          </a>
+        </p>
+      </section>
+
       <p>
         <Link href="/">Back to search</Link>
       </p>
