@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { DATASET_IDS, DATASETS } from "@/config/datasets";
+import { DATASETS } from "@/config/datasets";
+import { MethodologyExplorer } from "@/components/MethodologyExplorer";
 
 export const metadata = {
   title: "Methodology | What's Happening on My Block?",
@@ -7,88 +8,88 @@ export const metadata = {
 
 export default function MethodologyPage() {
   return (
-    <main className="content-page">
-      <header>
+    <main className="content-page methodology-page">
+      <header className="methodology-header">
         <p className="eyebrow">Methodology</p>
         <h1>How the block brief is calculated</h1>
+        <p className="method-lead">
+          The brief is designed to be useful in about 10 seconds and transparent in under a minute. This page shows the exact logic behind
+          each module, where fallback matching is used, and how severity labels are assigned.
+        </p>
       </header>
 
-      <section>
-        <h2>Core query geometry</h2>
-        <p>
-          v1 uses point + radius queries (150m and 400m) for consistent, fast results. Where a dataset lacks reliable point geometry, the
-          app uses transparent fallback matching (BIN/BBL, borough, community district, or ZIP).
-        </p>
+      <section className="method-summary-grid" aria-label="Methodology summary">
+        <article className="method-summary-card">
+          <h2>Geometry First</h2>
+          <p>v1 prioritizes point + radius for predictable, fast API queries.</p>
+          <p className="method-mini">Default radii: 150m (block-ish) and 400m (nearby).</p>
+        </article>
+
+        <article className="method-summary-card">
+          <h2>Transparent Severity</h2>
+          <p>Every module includes Low/Medium/High plus threshold copy and impact framing.</p>
+          <p className="method-mini">No hidden scoring model.</p>
+        </article>
+
+        <article className="method-summary-card">
+          <h2>Resilient By Design</h2>
+          <p>Dataset failures degrade a module, not the whole page.</p>
+          <p className="method-mini">Partial rendering + per-dataset caching.</p>
+        </article>
       </section>
 
-      <section>
-        <h2>Scoring and ranking</h2>
-        <ul>
-          <li>311 Pulse: top complaint types by count in the last 30 days, with delta versus prior 30 days.</li>
-          <li>Street works: active now first, then longer duration, then proximity.</li>
-          <li>Collisions: hotspot derived by clustering collisions within 75m.</li>
-          <li>Right now strip: active closures + active street works + active film permits.</li>
-          <li>
-            Events: borough feed is locally filtered using community district match, closure signal, and nearby street-text relevance.
-          </li>
-        </ul>
-      </section>
+      <MethodologyExplorer />
 
-      <section>
-        <h2>Severity scale and impact framing</h2>
-        <p>Each module shows Low / Medium / High severity plus a “What this means for you” sentence.</p>
-        <ul>
-          <li>Right now: Low 0 active disruptions, Medium 1-2, High 3+.</li>
-          <li>Street works: Low 0-1 active disruptions, Medium 2-4, High 5+.</li>
-          <li>Collisions: High if injuries 8+ or crashes 40+; Medium if injuries 3+ or crashes 15+.</li>
-          <li>311 pulse: High if requests 350+ or 30-day increase 120+; Medium if requests 150+ or increase 50+.</li>
-          <li>Events: Low 0-7 locally relevant events, Medium 8-19, High 20+.</li>
-        </ul>
-      </section>
+      <section className="method-details">
+        <details open>
+          <summary>Scoring and ranking rules</summary>
+          <ul>
+            <li>311 pulse ranks complaint types by count in the current 30-day window, then compares to prior 30 days.</li>
+            <li>Street works ranks active-now first, then longer duration, then proximity.</li>
+            <li>Collisions clusters records within 75m and labels hotspot by frequent intersection text.</li>
+            <li>Right now strip combines active closures, active street works, and active film permits.</li>
+            <li>Events are ranked for locality using community district, closure signal, and nearby street-text signal.</li>
+          </ul>
+        </details>
 
-      <section>
-        <h2>Reliability model</h2>
-        <ul>
-          <li>Each module is fetched independently and rendered even if other modules fail.</li>
-          <li>Server-side caching is keyed by block identity and dataset window.</li>
-          <li>Data source links and per-module calculation notes are always visible in the brief.</li>
-        </ul>
-      </section>
+        <details>
+          <summary>Reliability and caching model</summary>
+          <ul>
+            <li>Each module queries independently so one outage does not blank the full brief.</li>
+            <li>Per-block and per-dataset cache keys reduce latency and API load.</li>
+            <li>High-churn datasets refresh frequently while stable layers cache longer.</li>
+            <li>User-visible warnings appear when partial data is shown.</li>
+          </ul>
+        </details>
 
-      <section>
-        <h2>Known limitations</h2>
-        <ul>
-          <li>Some datasets expose weak or missing geocoded fields, requiring fallback matching.</li>
-          <li>
-            Sanitation in v1 uses DSNY Frequencies ({" "}
-            <a href={DATASETS["rv63-53db"].url} target="_blank" rel="noreferrer">
-              rv63-53db
-            </a>
-            ) because the listed primary source ({" "}
-            <a href={DATASETS["p7k6-2pm8"].url} target="_blank" rel="noreferrer">
-              p7k6-2pm8
-            </a>
-            ) is currently sparse via API.
-          </li>
-          <li>Blockface precision is deferred to a future version; v1 prioritizes fast consistency.</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>Dataset links</h2>
-        <ul>
-          {DATASET_IDS.map((id) => (
-            <li key={id}>
-              <a href={DATASETS[id].url} target="_blank" rel="noreferrer">
-                {DATASETS[id].name} ({id})
+        <details>
+          <summary>Known limitations and current fallbacks</summary>
+          <ul>
+            <li>Some datasets lack stable geometry and require BIN/BBL, borough, ZIP, or text-based matching.</li>
+            <li>
+              Sanitation uses DSNY Frequencies (
+              <a href={DATASETS["rv63-53db"].url} target="_blank" rel="noreferrer">
+                rv63-53db
               </a>
+              ) while the preferred schedule source (
+              <a href={DATASETS["p7k6-2pm8"].url} target="_blank" rel="noreferrer">
+                p7k6-2pm8
+              </a>
+              ) remains sparse through this API path.
             </li>
-          ))}
-        </ul>
+            <li>v1 uses radius consistency over full blockface precision for speed and reliability.</li>
+          </ul>
+        </details>
       </section>
 
-      <section>
+      <section className="method-links">
         <h2>Source code</h2>
+        <p>
+          Live app:{" "}
+          <a href="https://whats-happening-on-my-block.vercel.app" target="_blank" rel="noreferrer">
+            whats-happening-on-my-block.vercel.app
+          </a>
+        </p>
         <p>
           <a href="https://github.com/reymuniziii-svg/whats-happening-on-my-block" target="_blank" rel="noreferrer">
             github.com/reymuniziii-svg/whats-happening-on-my-block
