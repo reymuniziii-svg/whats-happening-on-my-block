@@ -11,11 +11,28 @@ export function withinCircle(field: string, lat: number, lon: number, radiusMete
   return `within_circle(${field}, ${lat}, ${lon}, ${radiusMeters})`;
 }
 
-export function betweenIso(field: string, startIso: string, endIso?: string): string {
-  if (endIso) {
-    return `${field} between ${quote(startIso)} and ${quote(endIso)}`;
+function normalizeSoqlTimestamp(value: string): string {
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().replace(/\.\d{3}Z$/, "");
   }
-  return `${field} >= ${quote(startIso)}`;
+  return value.replace(/\.\d{3}Z$/, "").replace(/Z$/, "");
+}
+
+export function timestampLiteral(value: string): string {
+  return quote(normalizeSoqlTimestamp(value));
+}
+
+export function betweenIso(field: string, startIso: string, endIso?: string): string {
+  const castedField = `${field}::floating_timestamp`;
+  if (endIso) {
+    return `${castedField} between ${timestampLiteral(startIso)} and ${timestampLiteral(endIso)}`;
+  }
+  return `${castedField} >= ${timestampLiteral(startIso)}`;
+}
+
+export function compareIso(field: string, operator: "<=" | ">=" | "<" | ">" | "=" | "!=" , value: string): string {
+  return `${field}::floating_timestamp ${operator} ${timestampLiteral(value)}`;
 }
 
 export function inValues(field: string, values: string[]): string | undefined {

@@ -1,6 +1,6 @@
 import { memoryCache } from "@/lib/cache/memory-cache";
 import { sodaFetch } from "@/lib/soda/client";
-import { andClauses, betweenIso, boroughPredicate, withinCircle } from "@/lib/soda/query-builders";
+import { andClauses, betweenIso, boroughPredicate, compareIso, withinCircle } from "@/lib/soda/query-builders";
 import { distancePointToLineMeters, parseWktLineStringToLatLon } from "@/lib/utils/geo";
 import { daysAheadIso, durationDays } from "@/lib/utils/time";
 import type { Module } from "@/types/brief";
@@ -84,15 +84,15 @@ export async function buildStreetWorksModule(context: ModuleBuildContext): Promi
 
     const permitsWhere = andClauses(
       boroughPredicate("boroughname", context.location.borough),
-      `issuedworkenddate >= '${context.window90dIso}'`,
-      `issuedworkstartdate <= '${next30}'`,
+      compareIso("issuedworkenddate", ">=", context.window90dIso),
+      compareIso("issuedworkstartdate", "<=", next30),
       "wkt is not null",
     );
 
     const openingWhere = andClauses(
       boroughPredicate("boroughname", context.location.borough),
-      `issuedworkenddate >= '${context.window90dIso}'`,
-      `issuedworkstartdate <= '${next30}'`,
+      compareIso("issuedworkenddate", ">=", context.window90dIso),
+      compareIso("issuedworkstartdate", "<=", next30),
     );
 
     const [closureRows, permitRows, openingRows] = await Promise.all([

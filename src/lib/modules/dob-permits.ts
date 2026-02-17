@@ -1,6 +1,6 @@
 import { memoryCache } from "@/lib/cache/memory-cache";
 import { sodaFetch } from "@/lib/soda/client";
-import { andClauses, betweenIso, binPredicate } from "@/lib/soda/query-builders";
+import { andClauses, betweenIso, binPredicate, compareIso, timestampLiteral } from "@/lib/soda/query-builders";
 import { bboxForRadius, haversineMeters } from "@/lib/utils/geo";
 import type { Module } from "@/types/brief";
 import type { ModuleBuildContext, ModuleBuilder } from "@/lib/modules/types";
@@ -93,7 +93,7 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
     const bbox = bboxForRadius(context.location.lat, context.location.lon, context.radiusSecondaryM);
 
     const permitWhere = andClauses(
-      `issuance_date::floating_timestamp >= '${context.window90dIso}'`,
+      `issuance_date::floating_timestamp >= ${timestampLiteral(context.window90dIso)}`,
       `gis_latitude::number between ${bbox.minLat} and ${bbox.maxLat}`,
       `gis_longitude::number between ${bbox.minLon} and ${bbox.maxLon}`,
     );
@@ -105,7 +105,7 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
     );
 
     const complaintWhere = andClauses(
-      "date_entered::floating_timestamp >= '" + context.window90dIso + "'",
+      compareIso("date_entered", ">=", context.window90dIso),
       binPredicate("bin", context.location.bin),
     );
 

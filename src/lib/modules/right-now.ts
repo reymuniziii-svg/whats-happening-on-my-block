@@ -1,6 +1,6 @@
 import { memoryCache } from "@/lib/cache/memory-cache";
 import { sodaFetch } from "@/lib/soda/client";
-import { andClauses, boroughPredicate, withinCircle } from "@/lib/soda/query-builders";
+import { andClauses, boroughPredicate, compareIso, withinCircle } from "@/lib/soda/query-builders";
 import { distancePointToLineMeters, parseWktLineStringToLatLon } from "@/lib/utils/geo";
 import type { Module } from "@/types/brief";
 import type { ModuleBuildContext, ModuleBuilder } from "@/lib/modules/types";
@@ -62,21 +62,21 @@ export async function buildRightNowModule(context: ModuleBuildContext): Promise<
 
     const closureWhere = andClauses(
       withinCircle("the_geom", context.location.lat, context.location.lon, context.radiusSecondaryM),
-      `work_start_date <= '${now}'`,
-      `work_end_date >= '${now}'`,
+      compareIso("work_start_date", "<=", now),
+      compareIso("work_end_date", ">=", now),
     );
 
     const workWhere = andClauses(
       boroughPredicate("boroughname", context.location.borough),
-      `issuedworkstartdate <= '${now}'`,
-      `issuedworkenddate >= '${now}'`,
+      compareIso("issuedworkstartdate", "<=", now),
+      compareIso("issuedworkenddate", ">=", now),
       "wkt is not null",
     );
 
     const filmWhere = andClauses(
       boroughPredicate("borough", context.location.borough),
-      `startdatetime <= '${now}'`,
-      `enddatetime >= '${now}'`,
+      compareIso("startdatetime", "<=", now),
+      compareIso("enddatetime", ">=", now),
     );
 
     const [closureRows, workRows, filmRows] = await Promise.all([
