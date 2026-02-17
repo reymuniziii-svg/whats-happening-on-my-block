@@ -19,6 +19,7 @@ interface CollisionRow {
   off_street_name?: string;
   latitude?: string;
   longitude?: string;
+  crash_time?: string;
   number_of_persons_injured?: string;
 }
 
@@ -91,6 +92,30 @@ function topIntersectionLabel(cluster: Cluster): string {
   return winner;
 }
 
+function combineCrashDateTime(dateValue?: string, timeValue?: string): string | undefined {
+  if (!dateValue) {
+    return undefined;
+  }
+
+  const datePart = dateValue.split("T")[0];
+  if (!datePart) {
+    return undefined;
+  }
+
+  const timeMatch = timeValue?.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!timeMatch) {
+    return `${datePart}T00:00:00`;
+  }
+
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return `${datePart}T00:00:00`;
+  }
+
+  return `${datePart}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+}
+
 export async function buildCollisionsModule(context: ModuleBuildContext): Promise<Module> {
   const sources = moduleSources(["h9gi-nx95"]);
   const methodology = `within ${context.radiusSecondaryM}m; last 90 days; clusters by 75m for hotspot`;
@@ -117,7 +142,7 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
       memoryCache.getOrSet(rowsKey, 900, () =>
         sodaFetch<CollisionRow>("h9gi-nx95", {
           select:
-            "collision_id, crash_date, on_street_name, cross_street_name, off_street_name, latitude, longitude, number_of_persons_injured",
+            "collision_id, crash_date, crash_time, on_street_name, cross_street_name, off_street_name, latitude, longitude, number_of_persons_injured",
           where,
           order: "crash_date DESC",
           limit: 300,
@@ -185,7 +210,7 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
           [row.on_street_name, row.cross_street_name ?? row.off_street_name].filter(Boolean).join(" & ") ||
           "Collision record",
         subtitle: `${toNumber(row.number_of_persons_injured)} injuries`,
-        date_start: row.crash_date,
+        date_start: combineCrashDateTime(row.crash_date, row.crash_time),
         location_desc:
           [row.on_street_name, row.cross_street_name ?? row.off_street_name].filter(Boolean).join(" & ") || undefined,
         source_dataset_id: "h9gi-nx95",
