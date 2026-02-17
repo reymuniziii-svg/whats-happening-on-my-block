@@ -1,8 +1,13 @@
+"use client";
+
 import type { Module } from "@/types/brief";
 import { interpretModule } from "@/lib/insights/module-interpretation";
 
 interface ModuleCardProps {
   module: Module;
+  selectedFeaturePrefix?: string | null;
+  onItemFocusFeature?: (prefix: string | null) => void;
+  detailContextLabel?: "now" | "24h" | "7d" | "30d";
 }
 
 const MODULE_LABELS: Record<Module["id"], string> = {
@@ -104,11 +109,32 @@ function summarizeWarnings(warnings: string[]): { summary: string; technical: st
   };
 }
 
-export function ModuleCard({ module }: ModuleCardProps) {
+function itemFeaturePrefix(module: Module, item: Module["items"][number]): string {
+  return `${module.id}:${item.raw_id ?? item.title}`;
+}
+
+function lensLabel(lens?: "now" | "24h" | "7d" | "30d"): string | null {
+  if (!lens) {
+    return null;
+  }
+  if (lens === "now") {
+    return "now";
+  }
+  if (lens === "24h") {
+    return "24h";
+  }
+  if (lens === "7d") {
+    return "7d";
+  }
+  return "30d";
+}
+
+export function ModuleCard({ module, onItemFocusFeature, selectedFeaturePrefix, detailContextLabel }: ModuleCardProps) {
   const label = moduleLabelFor(module.id);
   const description = MODULE_DESCRIPTIONS[module.id];
   const warningCopy = module.warnings?.length ? summarizeWarnings(module.warnings) : null;
   const interpretation = interpretModule(module);
+  const detailsLens = lensLabel(detailContextLabel);
 
   return (
     <section className="module-card" id={module.id} aria-labelledby={`${module.id}-title`}>
@@ -163,11 +189,22 @@ export function ModuleCard({ module }: ModuleCardProps) {
       {module.coverage_note ? <p className="coverage-note">{module.coverage_note}</p> : null}
 
       <details>
-        <summary>Details ({module.items.length})</summary>
+        <summary>
+          Details ({module.items.length}
+          {detailsLens ? ` in ${detailsLens}` : ""})
+        </summary>
         {module.items.length ? (
           <ul className="detail-list">
             {module.items.map((item, index) => (
-              <li key={`${module.id}-${item.raw_id ?? `${item.title}-${index}`}`}>
+              <li
+                key={`${module.id}-${item.raw_id ?? `${item.title}-${index}`}`}
+                className={selectedFeaturePrefix === itemFeaturePrefix(module, item) ? "detail-row-highlighted" : undefined}
+                onMouseEnter={() => onItemFocusFeature?.(itemFeaturePrefix(module, item))}
+                onMouseLeave={() => onItemFocusFeature?.(null)}
+                onFocus={() => onItemFocusFeature?.(itemFeaturePrefix(module, item))}
+                onBlur={() => onItemFocusFeature?.(null)}
+                tabIndex={0}
+              >
                 <h3>{item.title}</h3>
                 {item.subtitle ? <p>{item.subtitle}</p> : null}
                 {formatDateRange(item.date_start, item.date_end) ? (

@@ -1,3 +1,5 @@
+"use client";
+
 import type { BriefResponse, Module } from "@/types/brief";
 
 interface BriefInsightsProps {

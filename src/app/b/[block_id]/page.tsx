@@ -2,10 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buildBrief } from "@/lib/brief/build-brief";
 import { decodeBlockId } from "@/lib/brief/share-id";
-import { MapPanel } from "@/components/MapPanel";
-import { ModuleCard, moduleLabelFor } from "@/components/ModuleCard";
+import { BriefInteractivePanels } from "@/components/BriefInteractivePanels";
 import { ShareButton } from "@/components/ShareButton";
-import { BriefInsights } from "@/components/BriefInsights";
+import { SummaryCardButton } from "@/components/SummaryCardButton";
 import type { BriefResponse, ResolvedLocation } from "@/types/brief";
 
 export const runtime = "nodejs";
@@ -75,28 +74,13 @@ export default async function BriefPage({ params }: BriefPageProps) {
 
         <div className="header-actions">
           <ShareButton path={`/b/${block_id}`} />
+          <SummaryCardButton brief={brief} path={`/b/${block_id}`} />
           <Link href="/">New Search</Link>
           <Link href="/methodology">Methodology</Link>
         </div>
       </header>
 
-      <BriefInsights brief={brief} />
-
-      <nav className="module-nav" aria-label="Jump to module">
-        {brief.modules.map((module) => (
-          <a key={module.id} href={`#${module.id}`}>
-            {moduleLabelFor(module.id)}
-          </a>
-        ))}
-      </nav>
-
-      <MapPanel map={brief.map} />
-
-      <section className="module-stack" aria-label="Modules">
-        {brief.modules.map((module) => (
-          <ModuleCard key={module.id} module={module} />
-        ))}
-      </section>
+      <BriefInteractivePanels brief={brief} />
     </main>
   );
 }
