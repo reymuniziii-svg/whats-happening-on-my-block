@@ -51,6 +51,12 @@ export function decodeBlockId(blockId: string): BlockIdPayload {
   }
   const encoded = blockId.slice(3);
   const raw = fromBase64Url(encoded);
-  const parsed = JSON.parse(raw);
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+
+  // Backward compatibility: early links used `norough` by mistake.
+  if (!parsed.borough && typeof parsed.norough === "string") {
+    parsed.borough = parsed.norough;
+  }
+
   return blockPayloadSchema.parse(parsed);
 }

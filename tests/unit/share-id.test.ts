@@ -27,4 +27,26 @@ describe("share block id", () => {
   it("rejects unsupported version", () => {
     expect(() => decodeBlockId("v2_abc")).toThrow("Unsupported block id version");
   });
+
+  it("supports legacy payloads that used norough key", () => {
+    const legacyPayload = {
+      v: 1,
+      lat: 40.68434,
+      lon: -73.92316,
+      bbl: "3016680051",
+      bin: "3046670",
+      norough: "Brooklyn",
+      normalized_address: "166 RALPH AVENUE, Brooklyn, NY, USA",
+      zip_code: "11233",
+    };
+
+    const encoded = Buffer.from(JSON.stringify(legacyPayload))
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+
+    const decoded = decodeBlockId(`v1_${encoded}`);
+    expect(decoded.borough).toBe("Brooklyn");
+  });
 });
