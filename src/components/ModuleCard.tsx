@@ -1,13 +1,42 @@
 "use client";
 
+import { useState } from "react";
 import type { Module } from "@/types/brief";
 import { interpretModule } from "@/lib/insights/module-interpretation";
 
 interface ModuleCardProps {
   module: Module;
+  blockId?: string;
   selectedFeaturePrefix?: string | null;
   onItemFocusFeature?: (prefix: string | null) => void;
   detailContextLabel?: "now" | "24h" | "7d" | "30d";
+}
+
+interface All311Call {
+  id: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  date_start?: string;
+  date_end?: string;
+  location_desc?: string;
+}
+
+interface All311CallsResponse {
+  total_calls: number;
+  returned_calls: number;
+  truncated: boolean;
+  window_days: number;
+  radius_m: number;
+  generated_at_utc: string;
+  methodology: string;
+  source: {
+    dataset_id: string;
+    dataset_name: string;
+    dataset_url: string;
+  };
+  calls: All311Call[];
+  error?: string;
 }
 
 const MODULE_LABELS: Record<Module["id"], string> = {
@@ -129,12 +158,56 @@ function lensLabel(lens?: "now" | "24h" | "7d" | "30d"): string | null {
   return "30d";
 }
 
-export function ModuleCard({ module, onItemFocusFeature, selectedFeaturePrefix, detailContextLabel }: ModuleCardProps) {
+export function ModuleCard({ module, blockId, onItemFocusFeature, selectedFeaturePrefix, detailContextLabel }: ModuleCardProps) {
   const label = moduleLabelFor(module.id);
   const description = MODULE_DESCRIPTIONS[module.id];
   const warningCopy = module.warnings?.length ? summarizeWarnings(module.warnings) : null;
   const interpretation = interpretModule(module);
   const detailsLens = lensLabel(detailContextLabel);
+  const [all311State, setAll311State] = useState<{
+    loading: boolean;
+    error: string | null;
+    data: All311CallsResponse | null;
+  }>({
+    loading: false,
+    error: null,
+    data: null,
+  });
+
+  async function fetchAll311Calls(forceRefresh = false): Promise<void> {
+    if (module.id !== "311_pulse" || !blockId || all311State.loading) {
+      return;
+    }
+    if (!forceRefresh && all311State.data) {
+      return;
+    }
+
+    setAll311State((current) => ({
+      loading: true,
+      error: null,
+      data: current.data,
+    }));
+
+    try {
+      const response = await fetch(`/api/brief/by-block/${encodeURIComponent(blockId)}/311-calls?days=30`);
+      const json = (await response.json()) as All311CallsResponse;
+      if (!response.ok) {
+        throw new Error(json.error ?? "Could not load all nearby 311 calls.");
+      }
+
+      setAll311State({
+        loading: false,
+        error: null,
+        data: json,
+      });
+    } catch (error) {
+      setAll311State((current) => ({
+        loading: false,
+        error: error instanceof Error ? error.message : "Could not load all nearby 311 calls.",
+        data: current.data,
+      }));
+    }
+  }
 
   return (
     <section className="module-card" id={module.id} aria-labelledby={`${module.id}-title`}>
@@ -223,6 +296,61 @@ export function ModuleCard({ module, onItemFocusFeature, selectedFeaturePrefix, 
         ) : (
           <p className="empty-details">No detail rows in this time window.</p>
         )}
+
+        {module.id === "311_pulse" ? (
+          <section className="module-311-all">
+            <button type="button" className="module-311-all-button" onClick={() => fetchAll311Calls(Boolean(all311State.data))}>
+              {all311State.data ? "Refresh all 311 calls" : "See all 311 calls"}
+            </button>
+            <p className="module-311-all-note">Loads individual nearby requests on demand to keep the main brief fast.</p>
+
+            {all311State.loading ? <p className="module-311-loading">Loading nearby 311 calls...</p> : null}
+            {all311State.error ? <p className="module-311-error">{all311State.error}</p> : null}
+
+            {all311State.data ? (
+              <>
+                <p className="module-311-summary">
+                  Showing {all311State.data.returned_calls} of {all311State.data.total_calls} requests from the last{" "}
+                  {all311State.data.window_days} days within {all311State.data.radius_m}m.
+                  {all311State.data.truncated ? " Results are capped to keep load times stable." : ""}
+                </p>
+
+                {all311State.data.calls.length > 0 ? (
+                  <ul className="detail-list detail-list-compact">
+                    {all311State.data.calls.map((call, index) => (
+                      <li key={`all-311-${call.id}-${index}`}>
+                        <h3>{call.title}</h3>
+                        {call.subtitle ? <p>{call.subtitle}</p> : null}
+                        {formatDateRange(call.date_start, call.date_end) ? (
+                          <p className="detail-meta">
+                            <strong>When:</strong> {formatDateRange(call.date_start, call.date_end)}
+                          </p>
+                        ) : null}
+                        {call.location_desc ? (
+                          <p className="detail-meta">
+                            <strong>Where:</strong> {call.location_desc}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="empty-details">No individual 311 calls found in this window.</p>
+                )}
+
+                <p className="module-311-source">
+                  <strong>How this list is calculated:</strong> {all311State.data.methodology}
+                </p>
+                <p className="module-311-source">
+                  <strong>Data source:</strong>{" "}
+                  <a href={all311State.data.source.dataset_url} target="_blank" rel="noreferrer">
+                    {all311State.data.source.dataset_name}
+                  </a>
+                </p>
+              </>
+            ) : null}
+          </section>
+        ) : null}
       </details>
 
       <footer className="module-footer">

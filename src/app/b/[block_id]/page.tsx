@@ -80,7 +80,7 @@ export default async function BriefPage({ params }: BriefPageProps) {
         </div>
       </header>
 
-      <BriefInteractivePanels brief={brief} />
+      <BriefInteractivePanels brief={brief} blockId={block_id} />
     </main>
   );
 }

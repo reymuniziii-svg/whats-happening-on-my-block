@@ -104,9 +104,10 @@ function setAllVisibility(value: boolean): Record<ModuleId, boolean> {
 
 interface BriefInteractivePanelsProps {
   brief: BriefResponse;
+  blockId: string;
 }
 
-export function BriefInteractivePanels({ brief }: BriefInteractivePanelsProps) {
+export function BriefInteractivePanels({ brief, blockId }: BriefInteractivePanelsProps) {
   const [timeLens, setTimeLens] = useState<TimeLens>("30d");
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<ModuleId, boolean>>(() => initialVisibility(brief.modules));
@@ -206,6 +207,7 @@ export function BriefInteractivePanels({ brief }: BriefInteractivePanelsProps) {
           <ModuleCard
             key={moduleData.id}
             module={moduleData}
+            blockId={blockId}
             selectedFeaturePrefix={resolvedSelectedPrefix}
             detailContextLabel={timeLens}
             onItemFocusFeature={(prefix) => setSelectedFeaturePrefix(prefix)}

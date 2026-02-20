@@ -888,9 +888,61 @@ main {
   font-size: 0.87rem;
 }
 
+.detail-list-compact {
+  margin-top: 0.55rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
 .detail-meta {
   font-family: var(--font-plex-mono), monospace;
   font-size: 0.75rem;
+}
+
+.module-311-all {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+}
+
+.module-311-all-button {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--accent);
+  font-weight: 700;
+  padding: 0.46rem 0.64rem;
+  cursor: pointer;
+}
+
+.module-311-all-button:hover {
+  background: color-mix(in oklab, var(--accent-soft), white 35%);
+}
+
+.module-311-all-note {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.module-311-loading {
+  margin: 0.5rem 0 0;
+  color: #245e8f;
+  font-size: 0.84rem;
+}
+
+.module-311-error {
+  margin: 0.5rem 0 0;
+  color: var(--warn);
+  font-size: 0.84rem;
+}
+
+.module-311-summary,
+.module-311-source {
+  margin: 0.52rem 0 0;
+  color: #2f485d;
+  font-size: 0.83rem;
 }
 
 .module-footer {
