@@ -244,24 +244,12 @@ main {
   max-width: 920px;
 }
 
-.about-header {
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: color-mix(in oklab, var(--card), white 10%);
-  padding: 0.95rem 1rem;
-}
-
-.about-header h1 {
-  margin: 0.45rem 0 0;
-}
-
-.about-lead {
-  margin: 0.52rem 0 0;
-  max-width: 70ch;
-}
-
 .about-section {
   margin-top: 1rem;
+}
+
+.about-section:first-of-type {
+  margin-top: 0;
 }
 
 .about-section h2 {
@@ -318,20 +306,15 @@ main {
   align-self: center;
 }
 
-.builder-status {
+.builder-name {
   margin: 0;
-  color: #0f5c4d !important;
-  background: color-mix(in oklab, var(--accent-soft), white 35%);
-  border: 1px solid color-mix(in oklab, var(--accent), white 40%);
-  border-radius: 999px;
-  width: fit-content;
-  padding: 0.24rem 0.56rem;
-  font-size: 0.79rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  color: #1f3447;
 }
 
 .builder-placeholder {
-  margin: 0.58rem 0 0;
+  margin: 0.54rem 0 0;
 }
 
 .builder-links {

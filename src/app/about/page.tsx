@@ -8,14 +8,6 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <main className="content-page about-page">
-      <header className="about-header">
-        <p className="eyebrow">About</p>
-        <h1>What&apos;s Happening on My Block?</h1>
-        <p className="about-lead">
-          A fast, public NYC block brief that turns multiple city datasets into clear, practical neighborhood signals.
-        </p>
-      </header>
-
       <section className="about-section">
         <h2>About the Project</h2>
         <div className="about-card-grid">
@@ -66,7 +58,7 @@ export default function AboutPage() {
           </div>
 
           <div className="builder-copy">
-            <p className="builder-status">About Reynaldo</p>
+            <h3 className="builder-name">Reynaldo Muniz</h3>
             <p className="builder-placeholder">
               I build tools and write things that make messy data legible and complex topics clearer. By day, strategic
               communications for good causes. By night, tech projects, criterion collection, and writing. Brooklyn based. Bills guy
