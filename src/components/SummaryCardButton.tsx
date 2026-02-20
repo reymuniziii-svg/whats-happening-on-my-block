@@ -1,27 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { BriefResponse, Module } from "@/types/brief";
+import { summaryMetrics } from "@/lib/brief/summary-metrics";
+import type { BriefResponse } from "@/types/brief";
 
 interface SummaryCardButtonProps {
   brief: BriefResponse;
   path: string;
-}
-
-function findModule(brief: BriefResponse, id: Module["id"]): Module | undefined {
-  return brief.modules.find((moduleData) => moduleData.id === id);
-}
-
-function numericStat(module: Module | undefined, label: string): number {
-  const value = module?.stats.find((stat) => stat.label === label)?.value;
-  if (typeof value === "number") {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = Number(value.replace(/,/g, ""));
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
 }
 
 function drawWrappedText(
@@ -94,13 +79,7 @@ export function SummaryCardButton({ brief, path }: SummaryCardButtonProps) {
   function exportSummaryCard() {
     setState("working");
 
-    const disruptions = numericStat(findModule(brief, "right_now"), "Active closures") +
-      numericStat(findModule(brief, "right_now"), "Active street works") +
-      numericStat(findModule(brief, "right_now"), "Active film permits");
-    const crashes = numericStat(findModule(brief, "collisions"), "Crashes (90d)");
-    const injuries = numericStat(findModule(brief, "collisions"), "Injuries (90d)");
-    const requests = numericStat(findModule(brief, "311_pulse"), "Requests (30d)");
-    const events = numericStat(findModule(brief, "events"), "Upcoming events");
+    const metrics = summaryMetrics(brief);
 
     const canvas = document.createElement("canvas");
     canvas.width = 1200;
@@ -142,11 +121,19 @@ export function SummaryCardButton({ brief, path }: SummaryCardButtonProps) {
       cardW,
       cardH,
       "Right now",
-      disruptions === 0 ? "Calm block conditions" : `${disruptions} active disruptions`,
+      metrics.activeDisruptions === 0 ? "Calm block conditions" : `${metrics.activeDisruptions} active disruptions`,
     );
-    drawMetricCard(ctx, 52 + (cardW + gap), cardY, cardW, cardH, "Safety (90d)", `${crashes} crashes, ${injuries} injuries`);
-    drawMetricCard(ctx, 52 + 2 * (cardW + gap), cardY, cardW, cardH, "311 pulse", `${requests} requests`);
-    drawMetricCard(ctx, 52 + 3 * (cardW + gap), cardY, cardW, cardH, "Events (30d)", `${events} upcoming events`);
+    drawMetricCard(
+      ctx,
+      52 + (cardW + gap),
+      cardY,
+      cardW,
+      cardH,
+      "Safety (90d)",
+      `${metrics.crashes90d} crashes, ${metrics.injuries90d} injuries`,
+    );
+    drawMetricCard(ctx, 52 + 2 * (cardW + gap), cardY, cardW, cardH, "311 pulse", `${metrics.requests30d} requests`);
+    drawMetricCard(ctx, 52 + 3 * (cardW + gap), cardY, cardW, cardH, "Events (30d)", `${metrics.upcomingEvents} upcoming events`);
 
     ctx.fillStyle = "#385067";
     ctx.font = "600 18px Manrope, sans-serif";

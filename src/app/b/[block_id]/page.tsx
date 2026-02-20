@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { buildBrief } from "@/lib/brief/build-brief";
 import { decodeBlockId } from "@/lib/brief/share-id";
 import { BriefInteractivePanels } from "@/components/BriefInteractivePanels";
+import { PublishTools } from "@/components/PublishTools";
 import { ShareButton } from "@/components/ShareButton";
 import { SummaryCardButton } from "@/components/SummaryCardButton";
+import { WeeklyDigestStrip } from "@/components/WeeklyDigestStrip";
 import type { BriefResponse, ResolvedLocation } from "@/types/brief";
 
 export const runtime = "nodejs";
@@ -12,10 +14,21 @@ export const maxDuration = 60;
 
 interface BriefPageProps {
   params: Promise<{ block_id: string }>;
+  searchParams: Promise<{ lens?: string; mode?: string }>;
 }
 
-export default async function BriefPage({ params }: BriefPageProps) {
+function toTimeLens(value?: string): "now" | "24h" | "7d" | "30d" {
+  if (value === "now" || value === "24h" || value === "7d" || value === "30d") {
+    return value;
+  }
+  return "30d";
+}
+
+export default async function BriefPage({ params, searchParams }: BriefPageProps) {
   const { block_id } = await params;
+  const query = await searchParams;
+  const initialTimeLens = toTimeLens(query.lens);
+  const weeklyMode = query.mode === "weekly";
 
   let location: ResolvedLocation;
   try {
@@ -75,12 +88,14 @@ export default async function BriefPage({ params }: BriefPageProps) {
         <div className="header-actions">
           <ShareButton path={`/b/${block_id}`} />
           <SummaryCardButton brief={brief} path={`/b/${block_id}`} />
+          <PublishTools blockId={block_id} />
           <Link href="/">New Search</Link>
           <Link href="/methodology">Methodology</Link>
         </div>
       </header>
 
-      <BriefInteractivePanels brief={brief} blockId={block_id} />
+      {weeklyMode ? <WeeklyDigestStrip brief={brief} /> : null}
+      <BriefInteractivePanels brief={brief} blockId={block_id} initialTimeLens={initialTimeLens} />
     </main>
   );
 }
