@@ -240,6 +240,109 @@ main {
   color: #34495e;
 }
 
+.about-page {
+  max-width: 920px;
+}
+
+.about-header {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--card), white 10%);
+  padding: 0.95rem 1rem;
+}
+
+.about-header h1 {
+  margin: 0.45rem 0 0;
+}
+
+.about-lead {
+  margin: 0.52rem 0 0;
+  max-width: 70ch;
+}
+
+.about-section {
+  margin-top: 1rem;
+}
+
+.about-section h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1.28rem;
+}
+
+.about-card-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.about-card {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+  padding: 0.76rem 0.82rem;
+  box-shadow: 0 10px 20px #1325370d;
+}
+
+.about-card h3 {
+  margin: 0;
+  font-size: 0.97rem;
+}
+
+.about-card p {
+  margin: 0.38rem 0 0;
+}
+
+.about-link-row {
+  margin-top: 0.75rem;
+}
+
+.builder-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--card), white 8%);
+  box-shadow: 0 12px 24px #13253714;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(130px, 260px) 1fr;
+}
+
+.builder-photo img {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  display: block;
+}
+
+.builder-copy {
+  align-self: center;
+}
+
+.builder-status {
+  margin: 0;
+  color: #0f5c4d !important;
+  background: color-mix(in oklab, var(--accent-soft), white 35%);
+  border: 1px solid color-mix(in oklab, var(--accent), white 40%);
+  border-radius: 999px;
+  width: fit-content;
+  padding: 0.24rem 0.56rem;
+  font-size: 0.79rem;
+  font-weight: 700;
+}
+
+.builder-placeholder {
+  margin: 0.58rem 0 0;
+}
+
+.builder-links {
+  margin: 0.6rem 0 0;
+  font-weight: 600;
+}
+
+.about-nav-links {
+  margin-top: 1.15rem;
+}
+
 .methodology-page {
   max-width: 980px;
 }
@@ -1264,5 +1367,16 @@ main {
 
   .search-input-row input {
     flex: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .builder-card {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+
+  .builder-photo {
+    max-width: 220px;
   }
 }
