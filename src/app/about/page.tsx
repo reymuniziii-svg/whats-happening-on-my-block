@@ -66,9 +66,11 @@ export default function AboutPage() {
           </div>
 
           <div className="builder-copy">
-            <p className="builder-status">Short bio is pending final approval before publication.</p>
+            <p className="builder-status">About Reynaldo</p>
             <p className="builder-placeholder">
-              A short builder bio will appear here once approved. In the meantime, you can connect through the links below.
+              I build tools and write things that make messy data legible and complex topics clearer. By day, strategic
+              communications for good causes. By night, tech projects, criterion collection, and writing. Brooklyn based. Bills guy
+              (for better or worse).
             </p>
 
             <p className="builder-links">
