@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BriefInsights } from "@/components/BriefInsights";
 import { MapPanel } from "@/components/MapPanel";
 import { ModuleCard, moduleLabelFor } from "@/components/ModuleCard";
@@ -156,6 +156,27 @@ export function BriefInteractivePanels({ brief, blockId, initialTimeLens = "30d"
 
   const visibleModuleCount = displayedModules.length;
   const hiddenModuleCount = brief.modules.length - visibleModuleCount;
+
+  useEffect(() => {
+    if (!isFilterDrawerOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFilterDrawerOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFilterDrawerOpen]);
 
   return (
     <>

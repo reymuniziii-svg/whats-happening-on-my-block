@@ -5,10 +5,29 @@ interface WeeklyDigestStripProps {
   brief: BriefResponse;
 }
 
+function uniqueTitles(items: Array<{ title: string; subtitle?: string }>, limit: number): Array<{ title: string; subtitle?: string }> {
+  const unique: Array<{ title: string; subtitle?: string }> = [];
+  const seen = new Set<string>();
+
+  for (const item of items) {
+    const key = item.title.trim().toLowerCase();
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(item);
+    if (unique.length >= limit) {
+      break;
+    }
+  }
+
+  return unique;
+}
+
 export function WeeklyDigestStrip({ brief }: WeeklyDigestStripProps) {
   const metrics = summaryMetrics(brief);
-  const rightNowItems = topModuleItems(findModule(brief, "right_now"), 3);
-  const pulseItems = topModuleItems(findModule(brief, "311_pulse"), 3);
+  const rightNowItems = uniqueTitles(topModuleItems(findModule(brief, "right_now"), 12), 3);
+  const pulseItems = uniqueTitles(topModuleItems(findModule(brief, "311_pulse"), 12), 3);
 
   return (
     <section className="weekly-digest" aria-label="Weekly digest">

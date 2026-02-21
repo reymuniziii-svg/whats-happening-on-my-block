@@ -46,8 +46,28 @@ export function topModuleItems(module: Module | undefined, limit = 3): Array<{ t
   if (!module) {
     return [];
   }
-  return module.items.slice(0, limit).map((item) => ({
-    title: item.title,
-    subtitle: item.subtitle,
-  }));
+
+  const unique: Array<{ title: string; subtitle?: string }> = [];
+  const seen = new Set<string>();
+
+  for (const item of module.items) {
+    const title = item.title.trim();
+    if (!title) {
+      continue;
+    }
+
+    const subtitle = item.subtitle?.trim();
+    const key = `${title.toLowerCase()}|${(subtitle ?? "").toLowerCase()}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    unique.push({ title, subtitle: subtitle || undefined });
+    if (unique.length >= limit) {
+      break;
+    }
+  }
+
+  return unique;
 }

@@ -122,4 +122,24 @@ describe("summary metrics helpers", () => {
     const moduleData = findModule(briefFixture, "311_pulse");
     expect(topModuleItems(moduleData, 1)).toEqual([{ title: "Noise", subtitle: undefined }]);
   });
+
+  it("deduplicates repeating title/subtitle rows", () => {
+    const moduleData = findModule(briefFixture, "right_now");
+    if (!moduleData) {
+      throw new Error("Expected right_now module in fixture");
+    }
+
+    moduleData.items = [
+      { title: "Same Title", subtitle: "Same Subtitle", source_dataset_id: "i6b5-j7bu" },
+      { title: "Same Title", subtitle: "Same Subtitle", source_dataset_id: "i6b5-j7bu" },
+      { title: "Same Title", subtitle: "Different", source_dataset_id: "i6b5-j7bu" },
+      { title: "Next Title", source_dataset_id: "i6b5-j7bu" },
+    ];
+
+    expect(topModuleItems(moduleData, 4)).toEqual([
+      { title: "Same Title", subtitle: "Same Subtitle" },
+      { title: "Same Title", subtitle: "Different" },
+      { title: "Next Title", subtitle: undefined },
+    ]);
+  });
 });

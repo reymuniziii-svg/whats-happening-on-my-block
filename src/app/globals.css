@@ -949,6 +949,7 @@ main {
   background: var(--card);
   box-shadow: 0 8px 20px #1b2f400f;
   padding: 1rem;
+  scroll-margin-top: 6rem;
 }
 
 .module-header {
