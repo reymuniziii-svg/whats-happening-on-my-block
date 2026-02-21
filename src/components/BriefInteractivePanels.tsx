@@ -211,38 +211,66 @@ export function BriefInteractivePanels({ brief, blockId, initialTimeLens = "30d"
       </p>
 
       <nav className="module-nav" aria-label="Jump to module">
-        {displayedModules.map((moduleData) => (
-          <a key={moduleData.id} href={`#${moduleData.id}`}>
-            {moduleLabelFor(moduleData.id)}
-          </a>
-        ))}
+        {displayedModules.length > 0 ? (
+          displayedModules.map((moduleData) => (
+            <a key={moduleData.id} href={`#${moduleData.id}`}>
+              {moduleLabelFor(moduleData.id)}
+            </a>
+          ))
+        ) : (
+          <span className="module-nav-empty">No modules selected.</span>
+        )}
       </nav>
 
-      <MapPanel
-        map={filteredMap}
-        selectedFeaturePrefix={resolvedSelectedPrefix}
-        onFeatureSelect={(prefix) => setSelectedFeaturePrefix(prefix)}
-      />
-
-      <section className="module-stack" aria-label="Modules">
-        {displayedModules.map((moduleData) => (
-          <ModuleCard
-            key={moduleData.id}
-            module={moduleData}
-            blockId={blockId}
+      {displayedModules.length > 0 ? (
+        <>
+          <MapPanel
+            map={filteredMap}
             selectedFeaturePrefix={resolvedSelectedPrefix}
-            detailContextLabel={timeLens}
-            onItemFocusFeature={(prefix) => setSelectedFeaturePrefix(prefix)}
+            onFeatureSelect={(prefix) => setSelectedFeaturePrefix(prefix)}
           />
-        ))}
-      </section>
+
+          <section className="module-stack" aria-label="Modules">
+            {displayedModules.map((moduleData) => (
+              <ModuleCard
+                key={moduleData.id}
+                module={moduleData}
+                blockId={blockId}
+                selectedFeaturePrefix={resolvedSelectedPrefix}
+                detailContextLabel={timeLens}
+                onItemFocusFeature={(prefix) => setSelectedFeaturePrefix(prefix)}
+              />
+            ))}
+          </section>
+        </>
+      ) : (
+        <section className="module-empty-state" aria-live="polite">
+          <h2>No modules are visible</h2>
+          <p>Turn on one or more modules in Quick Filters to continue.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setVisibleModules(setAllVisibility(true));
+              setIsFilterDrawerOpen(false);
+            }}
+          >
+            Show all modules
+          </button>
+        </section>
+      )}
 
       <div
         className={isFilterDrawerOpen ? "drawer-overlay open" : "drawer-overlay"}
         onClick={() => setIsFilterDrawerOpen(false)}
         aria-hidden={!isFilterDrawerOpen}
       >
-        <aside className={isFilterDrawerOpen ? "filters-drawer open" : "filters-drawer"} onClick={(event) => event.stopPropagation()}>
+        <aside
+          className={isFilterDrawerOpen ? "filters-drawer open" : "filters-drawer"}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quick filters"
+          onClick={(event) => event.stopPropagation()}
+        >
           <header className="drawer-header">
             <h3>Quick Filters</h3>
             <button type="button" className="drawer-close" onClick={() => setIsFilterDrawerOpen(false)} aria-label="Close filters">

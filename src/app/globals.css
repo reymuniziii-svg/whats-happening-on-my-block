@@ -937,10 +937,47 @@ main {
   background: #fff;
 }
 
+.module-nav-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .module-stack {
   margin-top: 1rem;
   display: grid;
   gap: 0.9rem;
+}
+
+.module-empty-state {
+  margin-top: 1rem;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 1rem;
+}
+
+.module-empty-state h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.module-empty-state p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.module-empty-state button {
+  margin-top: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.4rem 0.62rem;
+  cursor: pointer;
 }
 
 .module-card {

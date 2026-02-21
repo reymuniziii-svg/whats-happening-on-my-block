@@ -69,6 +69,20 @@ function formatDate(value?: string): string | null {
   if (!value) {
     return null;
   }
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split("-").map((part) => Number.parseInt(part, 10));
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+      return null;
+    }
+
+    return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     return null;
@@ -268,30 +282,33 @@ export function ModuleCard({ module, blockId, onItemFocusFeature, selectedFeatur
         </summary>
         {module.items.length ? (
           <ul className="detail-list">
-            {module.items.map((item, index) => (
-              <li
-                key={`${module.id}-${item.raw_id ?? `${item.title}-${index}`}`}
-                className={selectedFeaturePrefix === itemFeaturePrefix(module, item) ? "detail-row-highlighted" : undefined}
-                onMouseEnter={() => onItemFocusFeature?.(itemFeaturePrefix(module, item))}
-                onMouseLeave={() => onItemFocusFeature?.(null)}
-                onFocus={() => onItemFocusFeature?.(itemFeaturePrefix(module, item))}
-                onBlur={() => onItemFocusFeature?.(null)}
-                tabIndex={0}
-              >
-                <h3>{item.title}</h3>
-                {item.subtitle ? <p>{item.subtitle}</p> : null}
-                {formatDateRange(item.date_start, item.date_end) ? (
-                  <p className="detail-meta">
-                    <strong>When:</strong> {formatDateRange(item.date_start, item.date_end)}
-                  </p>
-                ) : null}
-                {item.location_desc ? (
-                  <p className="detail-meta">
-                    <strong>Where:</strong> {item.location_desc}
-                  </p>
-                ) : null}
-              </li>
-            ))}
+            {module.items.map((item, index) => {
+              const whenLabel = formatDateRange(item.date_start, item.date_end);
+              return (
+                <li
+                  key={`${module.id}-${item.raw_id ?? `${item.title}-${index}`}`}
+                  className={selectedFeaturePrefix === itemFeaturePrefix(module, item) ? "detail-row-highlighted" : undefined}
+                  onMouseEnter={() => onItemFocusFeature?.(itemFeaturePrefix(module, item))}
+                  onMouseLeave={() => onItemFocusFeature?.(null)}
+                  onFocus={() => onItemFocusFeature?.(itemFeaturePrefix(module, item))}
+                  onBlur={() => onItemFocusFeature?.(null)}
+                  tabIndex={0}
+                >
+                  <h3>{item.title}</h3>
+                  {item.subtitle ? <p>{item.subtitle}</p> : null}
+                  {whenLabel ? (
+                    <p className="detail-meta">
+                      <strong>When:</strong> {whenLabel}
+                    </p>
+                  ) : null}
+                  {item.location_desc ? (
+                    <p className="detail-meta">
+                      <strong>Where:</strong> {item.location_desc}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="empty-details">No detail rows in this time window.</p>
@@ -317,22 +334,25 @@ export function ModuleCard({ module, blockId, onItemFocusFeature, selectedFeatur
 
                 {all311State.data.calls.length > 0 ? (
                   <ul className="detail-list detail-list-compact">
-                    {all311State.data.calls.map((call, index) => (
-                      <li key={`all-311-${call.id}-${index}`}>
-                        <h3>{call.title}</h3>
-                        {call.subtitle ? <p>{call.subtitle}</p> : null}
-                        {formatDateRange(call.date_start, call.date_end) ? (
-                          <p className="detail-meta">
-                            <strong>When:</strong> {formatDateRange(call.date_start, call.date_end)}
-                          </p>
-                        ) : null}
-                        {call.location_desc ? (
-                          <p className="detail-meta">
-                            <strong>Where:</strong> {call.location_desc}
-                          </p>
-                        ) : null}
-                      </li>
-                    ))}
+                    {all311State.data.calls.map((call, index) => {
+                      const whenLabel = formatDateRange(call.date_start, call.date_end);
+                      return (
+                        <li key={`all-311-${call.id}-${index}`}>
+                          <h3>{call.title}</h3>
+                          {call.subtitle ? <p>{call.subtitle}</p> : null}
+                          {whenLabel ? (
+                            <p className="detail-meta">
+                              <strong>When:</strong> {whenLabel}
+                            </p>
+                          ) : null}
+                          {call.location_desc ? (
+                            <p className="detail-meta">
+                              <strong>Where:</strong> {call.location_desc}
+                            </p>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p className="empty-details">No individual 311 calls found in this window.</p>

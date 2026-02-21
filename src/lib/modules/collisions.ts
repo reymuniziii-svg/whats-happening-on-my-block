@@ -29,6 +29,12 @@ interface Cluster {
   centerLon: number;
 }
 
+interface CrashTimeInfo {
+  known: boolean;
+  hour?: number;
+  minute?: number;
+}
+
 function datasetWarning(datasetId: string, error: unknown): string {
   const message = error instanceof Error ? error.message : "Unknown error";
   return `${datasetId}: ${message}`;
@@ -92,6 +98,25 @@ function topIntersectionLabel(cluster: Cluster): string {
   return winner;
 }
 
+function parseCrashTime(timeValue?: string): CrashTimeInfo {
+  const timeMatch = timeValue?.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!timeMatch) {
+    return { known: false };
+  }
+
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return { known: false };
+  }
+
+  return {
+    known: true,
+    hour,
+    minute,
+  };
+}
+
 function combineCrashDateTime(dateValue?: string, timeValue?: string): string | undefined {
   if (!dateValue) {
     return undefined;
@@ -102,18 +127,12 @@ function combineCrashDateTime(dateValue?: string, timeValue?: string): string | 
     return undefined;
   }
 
-  const timeMatch = timeValue?.trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!timeMatch) {
-    return `${datePart}T00:00:00`;
+  const time = parseCrashTime(timeValue);
+  if (!time.known || time.hour === undefined || time.minute === undefined) {
+    return datePart;
   }
 
-  const hour = Number(timeMatch[1]);
-  const minute = Number(timeMatch[2]);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-    return `${datePart}T00:00:00`;
-  }
-
-  return `${datePart}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+  return `${datePart}T${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}:00`;
 }
 
 export async function buildCollisionsModule(context: ModuleBuildContext): Promise<Module> {
@@ -205,19 +224,22 @@ export async function buildCollisionsModule(context: ModuleBuildContext): Promis
     moduleCard.items = detailRows
       .sort((a, b) => toNumber(b.number_of_persons_injured) - toNumber(a.number_of_persons_injured))
       .slice(0, 12)
-      .map((row) => ({
-        title:
-          [row.on_street_name, row.cross_street_name ?? row.off_street_name].filter(Boolean).join(" & ") ||
-          "Collision record",
-        subtitle: `${toNumber(row.number_of_persons_injured)} injuries`,
-        date_start: combineCrashDateTime(row.crash_date, row.crash_time),
-        location_desc:
-          [row.on_street_name, row.cross_street_name ?? row.off_street_name].filter(Boolean).join(" & ") || undefined,
-        source_dataset_id: "h9gi-nx95",
-        raw_id: row.collision_id,
-        lat: Number(row.latitude),
-        lon: Number(row.longitude),
-      }));
+      .map((row) => {
+        const timeInfo = parseCrashTime(row.crash_time);
+        return {
+          title:
+            [row.on_street_name, row.cross_street_name ?? row.off_street_name].filter(Boolean).join(" & ") ||
+            "Collision record",
+          subtitle: `${toNumber(row.number_of_persons_injured)} injuries${timeInfo.known ? "" : " · Time not reported"}`,
+          date_start: combineCrashDateTime(row.crash_date, row.crash_time),
+          location_desc:
+            [row.on_street_name, row.cross_street_name ?? row.off_street_name].filter(Boolean).join(" & ") || undefined,
+          source_dataset_id: "h9gi-nx95",
+          raw_id: row.collision_id,
+          lat: Number(row.latitude),
+          lon: Number(row.longitude),
+        };
+      });
 
     if (warnings.length > 0) {
       moduleCard.warnings = warnings;
