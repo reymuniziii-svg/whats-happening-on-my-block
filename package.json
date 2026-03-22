@@ -47,6 +47,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "^28.1.0",
+    "magicast": "^0.5.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
