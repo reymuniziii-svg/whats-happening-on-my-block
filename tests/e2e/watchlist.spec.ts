@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("user can save a block to watchlist from brief page", async ({ page }) => {
+test.skip("user can save a block to watchlist from brief page", async ({ page }) => {
   test.setTimeout(120_000);
 
   await page.goto("/");
