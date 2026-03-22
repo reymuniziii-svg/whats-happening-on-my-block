@@ -7,12 +7,14 @@ import { pulse311Module } from "@/lib/modules/pulse311";
 import { rightNowModule } from "@/lib/modules/right-now";
 import { sanitationModule } from "@/lib/modules/sanitation";
 import { streetWorksModule } from "@/lib/modules/street-works";
+import { transitMobilityModule } from "@/lib/modules/transit-mobility";
 import type { ModuleBuilder, ModuleBuildContext } from "@/lib/modules/types";
+import { recordModuleTiming } from "@/lib/observability/metrics";
 import { parseWktLineStringToLatLon, toBlockKey } from "@/lib/utils/geo";
 import { daysAgoIso, nowUtcIso } from "@/lib/utils/time";
 import type { BriefMapFeature, BriefResponse, Module, ModuleId, ResolvedLocation } from "@/types/brief";
 
-const BUILDERS: Record<string, ModuleBuilder> = {
+const BUILDERS: Record<ModuleId, ModuleBuilder> = {
   right_now: rightNowModule,
   dob_permits: dobPermitsModule,
   street_works: streetWorksModule,
@@ -20,6 +22,7 @@ const BUILDERS: Record<string, ModuleBuilder> = {
   "311_pulse": pulse311Module,
   sanitation: sanitationModule,
   events: eventsModule,
+  transit_mobility: transitMobilityModule,
   film: filmModule,
 };
 
@@ -74,9 +77,18 @@ export interface BuildBriefInput {
   rawAddress?: string;
 }
 
-type BuilderRegistry = Partial<Record<ModuleId, ModuleBuilder>>;
+export type BuilderRegistry = Partial<Record<ModuleId, ModuleBuilder>>;
 
-export async function buildBrief(input: BuildBriefInput, buildersOverride: BuilderRegistry = {}): Promise<BriefResponse> {
+export interface BuildBriefDiagnostics {
+  module_fetch_ms: Partial<Record<ModuleId, number>>;
+  module_status: Partial<Record<ModuleId, Module["status"]>>;
+  data_quality_flags: string[];
+}
+
+export async function buildBriefWithDiagnostics(
+  input: BuildBriefInput,
+  buildersOverride: BuilderRegistry = {},
+): Promise<{ brief: BriefResponse; diagnostics: BuildBriefDiagnostics }> {
   const nowIso = nowUtcIso();
   const context: ModuleBuildContext = {
     location: input.location,
@@ -89,10 +101,22 @@ export async function buildBrief(input: BuildBriefInput, buildersOverride: Build
     blockKey: toBlockKey(input.location.lat, input.location.lon, input.location.bbl),
   };
 
+  const moduleFetchMs: Partial<Record<ModuleId, number>> = {};
+
   const settled = await Promise.allSettled(
     MODULE_ORDER.map(async (id) => {
       const builder = buildersOverride[id] ?? BUILDERS[id];
-      return builder.build(context);
+      const startedAt = Date.now();
+      try {
+        const moduleData = await builder.build(context);
+        moduleFetchMs[id] = Date.now() - startedAt;
+        recordModuleTiming(id, moduleFetchMs[id] ?? 0);
+        return moduleData;
+      } catch (error) {
+        moduleFetchMs[id] = Date.now() - startedAt;
+        recordModuleTiming(id, moduleFetchMs[id] ?? 0);
+        throw error;
+      }
     }),
   );
 
@@ -139,5 +163,30 @@ export async function buildBrief(input: BuildBriefInput, buildersOverride: Build
     },
   };
 
+  const moduleStatus: Partial<Record<ModuleId, Module["status"]>> = {};
+  const dataQualityFlags: string[] = [];
+
+  for (const moduleData of modules) {
+    moduleStatus[moduleData.id] = moduleData.status;
+    if (moduleData.status === "partial") {
+      dataQualityFlags.push(`${moduleData.id}:partial`);
+    }
+    if (moduleData.status === "unavailable") {
+      dataQualityFlags.push(`${moduleData.id}:unavailable`);
+    }
+  }
+
+  return {
+    brief,
+    diagnostics: {
+      module_fetch_ms: moduleFetchMs,
+      module_status: moduleStatus,
+      data_quality_flags: dataQualityFlags,
+    },
+  };
+}
+
+export async function buildBrief(input: BuildBriefInput, buildersOverride: BuilderRegistry = {}): Promise<BriefResponse> {
+  const { brief } = await buildBriefWithDiagnostics(input, buildersOverride);
   return brief;
 }

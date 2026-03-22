@@ -1,4 +1,7 @@
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
+import { logger } from "@/lib/observability/logger";
+import { recordRouteTiming } from "@/lib/observability/metrics";
+import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -24,24 +27,34 @@ function clientKey(request: NextRequest): string {
 }
 
 export async function GET(request: NextRequest) {
-  const limit = checkRateLimit(`autocomplete:${clientKey(request)}`);
+  const startedAt = Date.now();
+  const requestId = requestIdFromRequest(request);
+
+  const limit = await checkRateLimit(`autocomplete:${clientKey(request)}`, {
+    namespace: "autocomplete",
+    maxRequests: 60,
+    windowMs: 60_000,
+  });
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Rate limit exceeded", suggestions: [] },
       {
         status: 429,
-        headers: limit.retryAfterSeconds
-          ? {
-              "Retry-After": String(limit.retryAfterSeconds),
-            }
-          : undefined,
+        headers: withRequestIdHeader(
+          requestId,
+          limit.retryAfterSeconds
+            ? {
+                "Retry-After": String(limit.retryAfterSeconds),
+              }
+            : undefined,
+        ),
       },
     );
   }
 
   const text = request.nextUrl.searchParams.get("text")?.trim() ?? "";
   if (text.length < 3) {
-    return NextResponse.json({ suggestions: [] });
+    return NextResponse.json({ suggestions: [] }, { headers: withRequestIdHeader(requestId) });
   }
 
   const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "6", 10);
@@ -64,7 +77,7 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(
         { suggestions: [], error: `GeoSearch autocomplete failed (${response.status})` },
-        { status: 502 },
+        { status: 502, headers: withRequestIdHeader(requestId) },
       );
     }
 
@@ -96,12 +109,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { suggestions },
       {
-        headers: {
+        headers: withRequestIdHeader(requestId, {
           "Cache-Control": "s-maxage=300, stale-while-revalidate=86400",
-        },
+        }),
       },
     );
-  } catch {
-    return NextResponse.json({ suggestions: [], error: "Autocomplete unavailable" }, { status: 502 });
+  } catch (error) {
+    logger.warn({ request_id: requestId, error }, "autocomplete route failed");
+    return NextResponse.json(
+      { suggestions: [], error: "Autocomplete unavailable" },
+      { status: 502, headers: withRequestIdHeader(requestId) },
+    );
+  } finally {
+    recordRouteTiming("/api/geosearch/autocomplete", Date.now() - startedAt);
   }
 }

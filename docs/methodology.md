@@ -14,6 +14,7 @@
 - 90-day window: permits, complaints, collisions.
 - 12-month window: ECB violations.
 - Next 30 days: events and film permits.
+- Transit alerts: active and near-term GTFS-RT service alerts with station proximity scoring.
 
 ## Ranking rules
 
@@ -21,6 +22,7 @@
 - Street works: active-now first, then longer duration, then closer geometry.
 - Collisions: cluster collisions in 75m groups and label hotspot by most frequent intersection string.
 - Events: borough feed is narrowed with local relevance scoring (community district, closure signal, nearby street text).
+- Transit mobility: alerts are ranked by nearby stop match + severity + timing proximity.
 
 ## Severity and impact framing
 
@@ -31,6 +33,7 @@
   - Collisions: High if injuries 8+ or crashes 40+; Medium if injuries 3+ or crashes 15+.
   - 311 pulse: High if requests 350+ or 30-day increase 120+; Medium if requests 150+ or increase 50+.
   - Events: Low 0-7 locally relevant events, Medium 8-19, High 20+.
+  - Transit + mobility: High if high-impact alerts 3+ or local alerts 6+; Medium if high-impact alerts 1+ or local alerts 2+.
 
 ## Reliability and degradation
 

@@ -3,6 +3,9 @@ import { DEFAULT_PARAMETERS } from "@/config/modules";
 import { decodeBlockId } from "@/lib/brief/share-id";
 import { memoryCache } from "@/lib/cache/memory-cache";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
+import { logger } from "@/lib/observability/logger";
+import { recordRouteTiming } from "@/lib/observability/metrics";
+import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import { sodaFetch } from "@/lib/soda/client";
 import { andClauses, betweenIso, withinCircle } from "@/lib/soda/query-builders";
 import { nowUtcIso } from "@/lib/utils/time";
@@ -113,17 +116,27 @@ export async function GET(
     params: Promise<{ block_id: string }>;
   },
 ) {
-  const limit = checkRateLimit(`311-calls:${clientKey(request)}`);
+  const startedAt = Date.now();
+  const requestId = requestIdFromRequest(request);
+
+  const limit = await checkRateLimit(`311-calls:${clientKey(request)}`, {
+    namespace: "all-311-calls",
+    maxRequests: 30,
+    windowMs: 60_000,
+  });
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Rate limit exceeded", calls: [] },
       {
         status: 429,
-        headers: limit.retryAfterSeconds
-          ? {
-              "Retry-After": String(limit.retryAfterSeconds),
-            }
-          : undefined,
+        headers: withRequestIdHeader(
+          requestId,
+          limit.retryAfterSeconds
+            ? {
+                "Retry-After": String(limit.retryAfterSeconds),
+              }
+            : undefined,
+        ),
       },
     );
   }
@@ -188,15 +201,18 @@ export async function GET(
         calls,
       },
       {
-        headers: {
+        headers: withRequestIdHeader(requestId, {
           "Cache-Control": "s-maxage=120, stale-while-revalidate=600",
-        },
+        }),
       },
     );
   } catch (error) {
+    logger.warn({ request_id: requestId, error }, "311 calls route failed");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load 311 calls", calls: [] },
-      { status: 400 },
+      { status: 400, headers: withRequestIdHeader(requestId) },
     );
+  } finally {
+    recordRouteTiming("/api/brief/by-block/[block_id]/311-calls", Date.now() - startedAt);
   }
 }

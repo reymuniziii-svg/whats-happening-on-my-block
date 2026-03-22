@@ -14,3 +14,5 @@
 - [NYC Permitted Event Information (tvpp-9vvx)](https://data.cityofnewyork.us/City-Government/NYC-Permitted-Event-Information/tvpp-9vvx)
 - [Community Districts (5crt-au7u)](https://data.cityofnewyork.us/City-Government/Community-Districts/5crt-au7u)
 - [Film Permits (tg4x-b46p)](https://data.cityofnewyork.us/City-Government/Film-Permits/tg4x-b46p)
+- [MTA GTFS Subway Stops Snapshot (gtfs_subway.zip)](https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip)
+- [MTA Service Alerts (GTFS-RT)](https://api.mta.info/)

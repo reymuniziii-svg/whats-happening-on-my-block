@@ -5,6 +5,7 @@ import { BriefInsights } from "@/components/BriefInsights";
 import { MapPanel } from "@/components/MapPanel";
 import { ModuleCard, moduleLabelFor } from "@/components/ModuleCard";
 import type { BriefMapFeature, BriefResponse, Module, ModuleId, ModuleItem } from "@/types/brief";
+import type { ModuleFreshness } from "@/types/brief-v2";
 
 type TimeLens = "now" | "24h" | "7d" | "30d";
 
@@ -79,6 +80,7 @@ function initialVisibility(modules: Module[]): Record<ModuleId, boolean> {
     "311_pulse": false,
     sanitation: false,
     events: false,
+    transit_mobility: false,
     film: false,
   };
 
@@ -98,6 +100,7 @@ function setAllVisibility(value: boolean): Record<ModuleId, boolean> {
     "311_pulse": value,
     sanitation: value,
     events: value,
+    transit_mobility: value,
     film: value,
   };
 }
@@ -106,9 +109,15 @@ interface BriefInteractivePanelsProps {
   brief: BriefResponse;
   blockId: string;
   initialTimeLens?: TimeLens;
+  moduleFreshness?: Partial<Record<ModuleId, ModuleFreshness>>;
 }
 
-export function BriefInteractivePanels({ brief, blockId, initialTimeLens = "30d" }: BriefInteractivePanelsProps) {
+export function BriefInteractivePanels({
+  brief,
+  blockId,
+  initialTimeLens = "30d",
+  moduleFreshness,
+}: BriefInteractivePanelsProps) {
   const [timeLens, setTimeLens] = useState<TimeLens>(initialTimeLens);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<ModuleId, boolean>>(() => initialVisibility(brief.modules));
@@ -238,6 +247,7 @@ export function BriefInteractivePanels({ brief, blockId, initialTimeLens = "30d"
                 blockId={blockId}
                 selectedFeaturePrefix={resolvedSelectedPrefix}
                 detailContextLabel={timeLens}
+                freshness={moduleFreshness?.[moduleData.id]}
                 onItemFocusFeature={(prefix) => setSelectedFeaturePrefix(prefix)}
               />
             ))}

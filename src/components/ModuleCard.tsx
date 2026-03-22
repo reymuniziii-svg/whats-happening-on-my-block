@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Module } from "@/types/brief";
 import { interpretModule } from "@/lib/insights/module-interpretation";
+import type { ModuleFreshness } from "@/types/brief-v2";
+import { ModuleFreshnessBadge } from "@/components/ModuleFreshnessBadge";
 
 interface ModuleCardProps {
   module: Module;
@@ -10,6 +12,7 @@ interface ModuleCardProps {
   selectedFeaturePrefix?: string | null;
   onItemFocusFeature?: (prefix: string | null) => void;
   detailContextLabel?: "now" | "24h" | "7d" | "30d";
+  freshness?: ModuleFreshness;
 }
 
 interface All311Call {
@@ -47,6 +50,7 @@ const MODULE_LABELS: Record<Module["id"], string> = {
   "311_pulse": "311 pulse",
   sanitation: "Sanitation",
   events: "Upcoming events",
+  transit_mobility: "Transit + mobility",
   film: "Film permits",
 };
 
@@ -62,6 +66,7 @@ const MODULE_DESCRIPTIONS: Record<Module["id"], string> = {
   "311_pulse": "Most common neighborhood complaints from recent 311 requests.",
   sanitation: "Area-level refuse, recycling, organics, and bulk service frequency.",
   events: "Permitted events expected over the next 30 days.",
+  transit_mobility: "Nearby transit station context and high-signal service alerts.",
   film: "Film permit activity that can affect parking and traffic.",
 };
 
@@ -172,7 +177,14 @@ function lensLabel(lens?: "now" | "24h" | "7d" | "30d"): string | null {
   return "30d";
 }
 
-export function ModuleCard({ module, blockId, onItemFocusFeature, selectedFeaturePrefix, detailContextLabel }: ModuleCardProps) {
+export function ModuleCard({
+  module,
+  blockId,
+  onItemFocusFeature,
+  selectedFeaturePrefix,
+  detailContextLabel,
+  freshness,
+}: ModuleCardProps) {
   const label = moduleLabelFor(module.id);
   const description = MODULE_DESCRIPTIONS[module.id];
   const warningCopy = module.warnings?.length ? summarizeWarnings(module.warnings) : null;
@@ -237,6 +249,7 @@ export function ModuleCard({ module, blockId, onItemFocusFeature, selectedFeatur
       </header>
 
       <p className="module-headline">{module.headline}</p>
+      <ModuleFreshnessBadge freshness={freshness} />
       <p className="module-impact">
         <strong>What this means for you:</strong> {interpretation.impact}
       </p>

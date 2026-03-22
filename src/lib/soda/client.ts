@@ -4,6 +4,17 @@ const BASE_URL = "https://data.cityofnewyork.us/resource";
 const concurrencyLimit = pLimit(4);
 const DEFAULT_TIMEOUT_MS = 25_000;
 const DEFAULT_RETRIES = 1;
+const CIRCUIT_FAIL_THRESHOLD = 3;
+const CIRCUIT_OPEN_MS = 45_000;
+const MODULE_QUERY_BUDGET = 8;
+
+interface CircuitState {
+  failures: number;
+  openUntil?: number;
+}
+
+const datasetCircuit = new Map<string, CircuitState>();
+const moduleBudget = new Map<string, { count: number; resetAt: number }>();
 
 export interface SodaQuery {
   select?: string;
@@ -17,6 +28,7 @@ export interface SodaFetchOptions {
   cacheSeconds?: number;
   timeoutMs?: number;
   retries?: number;
+  budgetKey?: string;
 }
 
 function toQueryString(query: SodaQuery): string {
@@ -60,8 +72,63 @@ function isRetriableStatus(status: number): boolean {
   return status === 408 || status === 429 || status >= 500;
 }
 
+function assertBudget(budgetKey?: string): void {
+  if (!budgetKey) {
+    return;
+  }
+
+  const now = Date.now();
+  const current = moduleBudget.get(budgetKey);
+  if (!current || now > current.resetAt) {
+    moduleBudget.set(budgetKey, { count: 1, resetAt: now + 60_000 });
+    return;
+  }
+
+  if (current.count >= MODULE_QUERY_BUDGET) {
+    throw new Error(`SODA query budget exceeded for ${budgetKey} (${MODULE_QUERY_BUDGET}/minute)`);
+  }
+
+  current.count += 1;
+  moduleBudget.set(budgetKey, current);
+}
+
+function assertCircuit(datasetId: string): void {
+  const state = datasetCircuit.get(datasetId);
+  if (!state || !state.openUntil) {
+    return;
+  }
+
+  if (Date.now() < state.openUntil) {
+    throw new Error(`SODA ${datasetId} temporarily paused due to repeated upstream failures`);
+  }
+}
+
+function markCircuitSuccess(datasetId: string): void {
+  datasetCircuit.set(datasetId, { failures: 0 });
+}
+
+function markCircuitFailure(datasetId: string): void {
+  const current = datasetCircuit.get(datasetId) ?? { failures: 0 };
+  const failures = current.failures + 1;
+
+  if (failures >= CIRCUIT_FAIL_THRESHOLD) {
+    datasetCircuit.set(datasetId, {
+      failures,
+      openUntil: Date.now() + CIRCUIT_OPEN_MS,
+    });
+    return;
+  }
+
+  datasetCircuit.set(datasetId, {
+    failures,
+  });
+}
+
 export async function sodaFetch<T>(datasetId: string, query: SodaQuery, options: SodaFetchOptions = {}): Promise<T[]> {
   return concurrencyLimit(async () => {
+    assertBudget(options.budgetKey);
+    assertCircuit(datasetId);
+
     const queryString = toQueryString(query);
     const url = `${BASE_URL}/${datasetId}.json?${queryString}`;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -103,7 +170,9 @@ export async function sodaFetch<T>(datasetId: string, query: SodaQuery, options:
           throw error;
         }
 
-        return (await response.json()) as T[];
+        const data = (await response.json()) as T[];
+        markCircuitSuccess(datasetId);
+        return data;
       } catch (error) {
         const aborted = isAbortError(error);
         if (aborted) {
@@ -119,6 +188,7 @@ export async function sodaFetch<T>(datasetId: string, query: SodaQuery, options:
           await sleep(250 * (attempt + 1));
           continue;
         }
+        markCircuitFailure(datasetId);
         throw lastError;
       } finally {
         clearTimeout(timeout);

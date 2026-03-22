@@ -226,6 +226,28 @@ function eventsDecision(module: Module): ThresholdDecision {
   };
 }
 
+function transitMobilityDecision(module: Module): ThresholdDecision {
+  const localAlerts = statNumber(module, "Local alerts");
+  const highImpact = statNumber(module, "High impact alerts");
+
+  const alertLevel = classifyByThreshold(localAlerts, 2, 6);
+  const highImpactLevel = classifyByThreshold(highImpact, 1, 3);
+  const severity = maxLevel(alertLevel, highImpactLevel);
+
+  const impact =
+    severity === "low"
+      ? "Transit conditions look relatively stable around nearby stations."
+      : severity === "medium"
+        ? "Expect occasional service adjustments that may affect commute reliability."
+        : "Multiple high-impact transit alerts are active; expect meaningful commute disruption risk.";
+
+  return {
+    severity,
+    impact,
+    thresholdNote: "High if high-impact alerts 3+ or local alerts 6+. Medium if high-impact alerts 1+ or local alerts 2+.",
+  };
+}
+
 function filmDecision(module: Module): ThresholdDecision {
   const upcoming = statNumber(module, "Upcoming permits");
   const activeNow = statNumber(module, "Active now");
@@ -264,6 +286,8 @@ function decisionForModule(module: Module): ThresholdDecision {
       return sanitationDecision(module);
     case "events":
       return eventsDecision(module);
+    case "transit_mobility":
+      return transitMobilityDecision(module);
     case "film":
       return filmDecision(module);
     default:

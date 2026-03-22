@@ -8,6 +8,7 @@ export const MODULE_ORDER: ModuleId[] = [
   "311_pulse",
   "sanitation",
   "events",
+  "transit_mobility",
   "film",
 ];
 

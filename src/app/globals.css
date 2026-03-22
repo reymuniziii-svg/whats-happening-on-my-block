@@ -225,6 +225,91 @@ main {
   gap: 1rem;
 }
 
+.watchlist-bar {
+  margin-top: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.7rem;
+}
+
+.watchlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.watchlist-header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.watchlist-header button {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.56rem;
+  cursor: pointer;
+}
+
+.watchlist-header button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.watchlist-note,
+.watchlist-error {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+}
+
+.watchlist-note {
+  color: var(--muted);
+}
+
+.watchlist-error {
+  color: var(--warn);
+}
+
+.watchlist-list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.36rem;
+}
+
+.watchlist-list li {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fffdf8;
+  padding: 0.42rem 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.watchlist-list li a {
+  font-size: 0.82rem;
+}
+
+.watchlist-list li button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #465d72;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.25rem 0.42rem;
+  cursor: pointer;
+}
+
 .content-page {
   padding: 2rem 0 4rem;
   max-width: 760px;
@@ -1067,6 +1152,18 @@ main {
   color: #8b2d1f;
   border-color: #f2c0b8;
   background: #ffece8;
+}
+
+.module-freshness-badge {
+  display: inline-flex;
+  margin-top: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: #3d556c;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.14rem 0.45rem;
 }
 
 .module-headline {

@@ -14,7 +14,9 @@ export type DatasetId =
   | "rv63-53db"
   | "tvpp-9vvx"
   | "5crt-au7u"
-  | "tg4x-b46p";
+  | "tg4x-b46p"
+  | "mta-gtfs-stops-snapshot"
+  | "mta-service-alerts-gtfs-rt";
 
 export interface DatasetMeta {
   id: DatasetId;
@@ -122,6 +124,20 @@ export const DATASETS: Record<DatasetId, DatasetMeta> = {
     moduleHints: ["right_now", "film"],
     url: "https://data.cityofnewyork.us/City-Government/Film-Permits/tg4x-b46p",
     ttlSeconds: 1800,
+  },
+  "mta-gtfs-stops-snapshot": {
+    id: "mta-gtfs-stops-snapshot",
+    name: "MTA GTFS Subway Stops (Snapshot)",
+    moduleHints: ["transit_mobility"],
+    url: "https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip",
+    ttlSeconds: 86400,
+  },
+  "mta-service-alerts-gtfs-rt": {
+    id: "mta-service-alerts-gtfs-rt",
+    name: "MTA Service Alerts (GTFS-RT)",
+    moduleHints: ["transit_mobility"],
+    url: "https://api.mta.info/",
+    ttlSeconds: 300,
   },
 };
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SearchForm } from "@/components/SearchForm";
+import { WatchlistBar } from "@/components/WatchlistBar";
 
 export default function HomePage() {
   return (
@@ -12,6 +13,7 @@ export default function HomePage() {
         </p>
 
         <SearchForm />
+        <WatchlistBar />
 
         <p className="hero-note">
           Transparent by design: each module links directly to NYC Open Data and explains exactly how it is calculated.

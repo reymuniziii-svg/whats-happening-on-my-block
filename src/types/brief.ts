@@ -6,7 +6,8 @@ export type ModuleId =
   | "311_pulse"
   | "sanitation"
   | "events"
-  | "film";
+  | "film"
+  | "transit_mobility";
 
 export type ModuleStatus = "ok" | "partial" | "unavailable";
 

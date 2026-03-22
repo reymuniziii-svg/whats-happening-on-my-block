@@ -44,6 +44,7 @@ next-env.d.ts
 /.tmp-video
 /test-results
 /playwright-report
+/src/lib 2/
 
 # keep example env template in repo
 !.env.example

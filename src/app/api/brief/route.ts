@@ -3,6 +3,9 @@ import { buildBrief } from "@/lib/brief/build-brief";
 import { encodeBlockId } from "@/lib/brief/share-id";
 import { resolveLocation } from "@/lib/geocode/resolve-location";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
+import { logger } from "@/lib/observability/logger";
+import { recordRouteTiming } from "@/lib/observability/metrics";
+import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import type { ResolvedLocation } from "@/types/brief";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -29,17 +32,27 @@ function toBlockId(location: ResolvedLocation): string {
 }
 
 export async function GET(request: NextRequest) {
-  const limit = checkRateLimit(clientKey(request));
+  const startedAt = Date.now();
+  const requestId = requestIdFromRequest(request);
+
+  const limit = await checkRateLimit(clientKey(request), {
+    namespace: "brief",
+    maxRequests: 30,
+    windowMs: 60_000,
+  });
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Rate limit exceeded" },
       {
         status: 429,
-        headers: limit.retryAfterSeconds
-          ? {
-              "Retry-After": String(limit.retryAfterSeconds),
-            }
-          : undefined,
+        headers: withRequestIdHeader(
+          requestId,
+          limit.retryAfterSeconds
+            ? {
+                "Retry-After": String(limit.retryAfterSeconds),
+              }
+            : undefined,
+        ),
       },
     );
   }
@@ -49,7 +62,7 @@ export async function GET(request: NextRequest) {
   const bbl = searchParams.get("bbl")?.trim();
 
   if (!address && !bbl) {
-    return NextResponse.json({ error: "Provide address or bbl." }, { status: 400 });
+    return NextResponse.json({ error: "Provide address or bbl." }, { status: 400, headers: withRequestIdHeader(requestId) });
   }
 
   try {
@@ -73,16 +86,19 @@ export async function GET(request: NextRequest) {
       share_path: `/b/${blockId}`,
       brief,
     }, {
-      headers: {
+      headers: withRequestIdHeader(requestId, {
         "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
-      },
+      }),
     });
   } catch (error) {
+    logger.error({ request_id: requestId, error }, "brief route failed");
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to build brief",
       },
-      { status: 500 },
+      { status: 500, headers: withRequestIdHeader(requestId) },
     );
+  } finally {
+    recordRouteTiming("/api/brief", Date.now() - startedAt);
   }
 }

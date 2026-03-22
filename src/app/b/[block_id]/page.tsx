@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { buildBrief } from "@/lib/brief/build-brief";
+import { buildBriefV2 } from "@/lib/brief/build-brief-v2";
 import { decodeBlockId } from "@/lib/brief/share-id";
 import { BriefInteractivePanels } from "@/components/BriefInteractivePanels";
 import { PublishTools } from "@/components/PublishTools";
 import { ShareButton } from "@/components/ShareButton";
 import { SummaryCardButton } from "@/components/SummaryCardButton";
 import { WeeklyDigestStrip } from "@/components/WeeklyDigestStrip";
+import { WatchlistBar } from "@/components/WatchlistBar";
 import type { BriefResponse, ResolvedLocation } from "@/types/brief";
+import type { BriefResponseV2 } from "@/types/brief-v2";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -50,8 +52,10 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
   }
 
   let brief: BriefResponse;
+  let briefV2: BriefResponseV2;
   try {
-    brief = await buildBrief({ location });
+    briefV2 = await buildBriefV2({ location });
+    brief = briefV2.brief;
   } catch {
     return (
       <main className="content-page">
@@ -95,7 +99,13 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
       </header>
 
       {weeklyMode ? <WeeklyDigestStrip brief={brief} /> : null}
-      <BriefInteractivePanels brief={brief} blockId={block_id} initialTimeLens={initialTimeLens} />
+      <WatchlistBar currentBlockId={block_id} currentAddress={brief.input.normalized_address} />
+      <BriefInteractivePanels
+        brief={brief}
+        blockId={block_id}
+        initialTimeLens={initialTimeLens}
+        moduleFreshness={briefV2.module_freshness}
+      />
     </main>
   );
 }

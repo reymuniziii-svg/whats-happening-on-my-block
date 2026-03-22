@@ -1,3 +1,5 @@
+import { redisDelete, redisGet, redisSet } from "@/lib/cache/redis-cache";
+
 interface CacheEntry<T> {
   value: T;
   expiresAt: number;
@@ -30,9 +32,22 @@ class MemoryCache {
     if (existing !== undefined) {
       return existing;
     }
+
+    const redisValue = await redisGet<T>(key);
+    if (redisValue !== undefined) {
+      this.set(key, redisValue, ttlSeconds);
+      return redisValue;
+    }
+
     const loaded = await loader();
     this.set(key, loaded, ttlSeconds);
+    await redisSet(key, loaded, ttlSeconds);
     return loaded;
+  }
+
+  async invalidate(key: string): Promise<void> {
+    this.store.delete(key);
+    await redisDelete(key);
   }
 
   clear(): void {

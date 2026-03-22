@@ -1,3 +1,5 @@
+import { redisEnabled } from "@/lib/cache/redis-cache";
+import { metricsSnapshot } from "@/lib/observability/metrics";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -8,5 +10,7 @@ export async function GET() {
     ok: true,
     service: "whats-happening-on-my-block",
     timestamp_utc: new Date().toISOString(),
+    cache_backend: redisEnabled() ? "redis+memory" : "memory",
+    metrics: metricsSnapshot(),
   });
 }

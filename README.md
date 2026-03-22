@@ -34,7 +34,9 @@ Every module shows:
 - React + Leaflet (OpenStreetMap)
 - NYC Open Data SODA APIs
 - Geoclient v2 (preferred) with NYC GeoSearch fallback
-- In-memory per-block and per-dataset caching
+- Redis-backed cache/rate-limit (Upstash) with in-memory fallback
+- Prisma + Postgres for optional watchlist/digest persistence
+- Google Sheets API (optional weekly digest export)
 
 ## Routes
 
@@ -45,6 +47,13 @@ Every module shows:
 - `GET /api/brief?address=...`
 - `GET /api/brief?bbl=...`
 - `GET /api/brief/by-block/{block_id}`
+- `GET /api/v2/brief?address=...`
+- `GET /api/v2/brief?bbl=...`
+- `GET /api/v2/brief/by-block/{block_id}`
+- `GET /api/v2/watchlist`
+- `POST /api/v2/watchlist/blocks`
+- `DELETE /api/v2/watchlist/blocks/{block_id}`
+- `POST /api/internal/cron/digest` (protected)
 - `GET /api/health`
 
 ## Data model
@@ -67,6 +76,8 @@ Includes:
 ```bash
 npm install
 cp .env.example .env.local
+# Optional (when DATABASE_URL is configured):
+npx prisma migrate dev
 npm run dev
 ```
 
@@ -84,10 +95,25 @@ Optional (recommended):
 - `GEOCLIENT_APP_ID`
 - `GEOCLIENT_APP_KEY`
 
-Optional future cache backend:
+Optional reliability + persistence:
 
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
+- `DATABASE_URL`
+- `WATCHLIST_SIGNING_SECRET`
+- `CRON_SECRET`
+
+Optional transit feeds:
+
+- `MTA_API_KEY`
+- `MTA_SERVICE_ALERTS_URL`
+
+Optional Google Sheets digest export:
+
+- `GOOGLE_SHEETS_SPREADSHEET_ID`
+- `GOOGLE_SHEETS_WORKSHEET_NAME`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
 
 ## Production reliability setup
 

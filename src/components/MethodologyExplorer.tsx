@@ -20,6 +20,7 @@ const MODULE_LABELS: Record<ModuleId, string> = {
   "311_pulse": "311 pulse",
   sanitation: "Sanitation",
   events: "Upcoming events",
+  transit_mobility: "Transit + mobility",
   film: "Film permits",
 };
 
@@ -194,6 +195,35 @@ const DEMO_SCENARIOS: Record<ModuleId, Scenario[]> = {
       name: "Very active month",
       note: "Sustained event load expected.",
       stats: [{ label: "Upcoming events", value: 27 }],
+    },
+  ],
+  transit_mobility: [
+    {
+      name: "Normal service",
+      note: "Few local alerts and no high-impact disruptions.",
+      stats: [
+        { label: "Nearby stations", value: 5 },
+        { label: "Local alerts", value: 1 },
+        { label: "High impact alerts", value: 0 },
+      ],
+    },
+    {
+      name: "Moderate pressure",
+      note: "Multiple local alerts with at least one high-impact warning.",
+      stats: [
+        { label: "Nearby stations", value: 6 },
+        { label: "Local alerts", value: 3 },
+        { label: "High impact alerts", value: 1 },
+      ],
+    },
+    {
+      name: "Major transit disruption",
+      note: "Multiple severe alerts likely impacting station access or service.",
+      stats: [
+        { label: "Nearby stations", value: 4 },
+        { label: "Local alerts", value: 8 },
+        { label: "High impact alerts", value: 3 },
+      ],
     },
   ],
   film: [
