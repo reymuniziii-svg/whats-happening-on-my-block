@@ -20,6 +20,6 @@ test("address search creates a shareable brief", async ({ page }) => {
 
   await page.waitForURL(/\/b\/v1_/);
   // Wait longer for brief to load since it depends on external NYC Open Data APIs
-  await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator("section.module-card").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("section.module-card").first()).toBeVisible({ timeout: 60_000 });
 });
