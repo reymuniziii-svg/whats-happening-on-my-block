@@ -1,7 +1,9 @@
 import { memoryCache } from "@/lib/cache/memory-cache";
 import { fetchTransitAlerts } from "@/lib/transit/alerts";
+import { fetchNearbyArrivals, type ArrivalPrediction } from "@/lib/transit/arrivals";
 import { nearbyTransitStations } from "@/lib/transit/gtfs-static";
 import { rankTransitAlerts } from "@/lib/transit/scoring";
+import { logger } from "@/lib/observability/logger";
 import type { Module } from "@/types/brief";
 import type { ModuleBuildContext, ModuleBuilder } from "@/lib/modules/types";
 import { moduleSkeleton, moduleSources, unavailableModule } from "@/lib/modules/helpers";
@@ -14,10 +16,34 @@ function nearestStationLabel(station?: { station_name: string; distance_m: numbe
   return `${station.station_name} (${rounded}m)`;
 }
 
+function formatArrivalItem(arrival: ArrivalPrediction): {
+  title: string;
+  subtitle: string;
+  date_start: string;
+  source_dataset_id: "mta-gtfs-rt-trip-updates";
+  raw_id: string;
+} {
+  const dirLabel = arrival.direction ? ` (${arrival.direction})` : "";
+  return {
+    title: `${arrival.routeId} train${dirLabel}`,
+    subtitle:
+      arrival.minutesAway <= 1
+        ? "Arriving now"
+        : `${arrival.minutesAway} min away`,
+    date_start: arrival.arrivalTime.toISOString(),
+    source_dataset_id: "mta-gtfs-rt-trip-updates",
+    raw_id: arrival.tripId,
+  };
+}
+
 export async function buildTransitMobilityModule(context: ModuleBuildContext): Promise<Module> {
-  const sources = moduleSources(["mta-gtfs-stops-snapshot", "mta-service-alerts-gtfs-rt"]);
+  const sources = moduleSources([
+    "mta-gtfs-stops-snapshot",
+    "mta-service-alerts-gtfs-rt",
+    "mta-gtfs-rt-trip-updates",
+  ]);
   const methodology =
-    "nearest transit stations are calculated from GTFS stop snapshot within 1200m; service alerts are fetched from MTA GTFS-RT and ranked by local stop match + severity + timing";
+    "nearest transit stations are calculated from GTFS stop snapshot within 1200m; service alerts are fetched from MTA GTFS-RT and ranked by local stop match + severity + timing; real-time arrivals are fetched from MTA GTFS-RT trip update feeds";
 
   try {
     const stations = nearbyTransitStations(context.location.lat, context.location.lon, {
@@ -32,10 +58,37 @@ export async function buildTransitMobilityModule(context: ModuleBuildContext): P
     const localAlerts = rankedAlerts.filter((entry) => entry.matchedStationCount > 0).slice(0, 12);
     const highImpact = localAlerts.filter((entry) => entry.severity === "high").length;
 
+    // Fetch real-time arrivals for nearby stations
+    const stopIds = stations.flatMap((s) => s.aliases);
+    let arrivals: ArrivalPrediction[] = [];
+    let arrivalsAvailable = false;
+
+    if (stopIds.length > 0) {
+      try {
+        const arrivalsCacheKey = `transit-arrivals:${stopIds.slice(0, 6).join(",")}:${context.nowIso.slice(0, 16)}`;
+        const arrivalResult = await memoryCache.getOrSet(arrivalsCacheKey, 60, () =>
+          fetchNearbyArrivals(stopIds, { limit: 8, maxMinutesAhead: 20 }),
+        );
+        arrivals = arrivalResult.arrivals;
+        arrivalsAvailable = true;
+      } catch (err) {
+        logger.warn(
+          { error: err instanceof Error ? err.message : "unknown" },
+          "Failed to fetch real-time arrivals",
+        );
+      }
+    }
+
+    const arrivalsSummary = arrivalsAvailable
+      ? arrivals.length > 0
+        ? `${arrivals.length} upcoming arrivals`
+        : "no arrivals in next 20 min"
+      : "real-time arrivals unavailable";
+
     const moduleCard = moduleSkeleton(
       "transit_mobility",
       stations.length
-        ? `${stations.length} nearby transit stations found; ${localAlerts.length} locally relevant service alerts right now.`
+        ? `${stations.length} nearby transit stations found; ${localAlerts.length} locally relevant service alerts; ${arrivalsSummary}.`
         : "No nearby transit stations found in the current radius.",
       sources,
       methodology,
@@ -44,12 +97,15 @@ export async function buildTransitMobilityModule(context: ModuleBuildContext): P
 
     moduleCard.stats = [
       { label: "Nearby stations", value: stations.length },
+      { label: "Upcoming arrivals", value: arrivals.length },
       { label: "Local alerts", value: localAlerts.length },
       { label: "High impact alerts", value: highImpact },
       { label: "Nearest station", value: nearestStationLabel(stations[0]) },
     ];
 
-    const stationItems = stations.slice(0, 4).map((station) => ({
+    const arrivalItems = arrivals.slice(0, 6).map(formatArrivalItem);
+
+    const stationItems = stations.slice(0, 3).map((station) => ({
       title: station.station_name,
       subtitle: `${Math.round(station.distance_m)}m away`,
       location_desc: station.borough,
@@ -59,7 +115,7 @@ export async function buildTransitMobilityModule(context: ModuleBuildContext): P
       lon: station.lon,
     }));
 
-    const alertItems = localAlerts.slice(0, 8).map((entry) => ({
+    const alertItems = localAlerts.slice(0, 6).map((entry) => ({
       title: entry.alert.headline,
       subtitle: `${entry.severity.toUpperCase()} impact • score ${entry.score}`,
       date_start: entry.alert.starts_at_utc,
@@ -68,15 +124,24 @@ export async function buildTransitMobilityModule(context: ModuleBuildContext): P
       raw_id: entry.alert.id,
     }));
 
-    moduleCard.items = [...stationItems, ...alertItems].slice(0, 12);
+    // Arrivals first (most time-sensitive), then stations, then alerts
+    moduleCard.items = [...arrivalItems, ...stationItems, ...alertItems].slice(0, 12);
 
     if (alertResult.sourceUrl) {
       moduleCard.coverage_note = `Alerts source: ${alertResult.sourceUrl}`;
     }
 
+    const warnings: string[] = [];
     if (stations.length === 0) {
+      warnings.push("No nearby GTFS stations in snapshot radius.");
+    }
+    if (!arrivalsAvailable && stations.length > 0) {
+      warnings.push("Real-time arrival data temporarily unavailable.");
+    }
+
+    if (warnings.length > 0) {
       moduleCard.status = "partial";
-      moduleCard.warnings = ["No nearby GTFS stations in snapshot radius."];
+      moduleCard.warnings = warnings;
     }
 
     return moduleCard;

@@ -16,7 +16,8 @@ export type DatasetId =
   | "5crt-au7u"
   | "tg4x-b46p"
   | "mta-gtfs-stops-snapshot"
-  | "mta-service-alerts-gtfs-rt";
+  | "mta-service-alerts-gtfs-rt"
+  | "mta-gtfs-rt-trip-updates";
 
 export interface DatasetMeta {
   id: DatasetId;
@@ -138,6 +139,13 @@ export const DATASETS: Record<DatasetId, DatasetMeta> = {
     moduleHints: ["transit_mobility"],
     url: "https://api.mta.info/",
     ttlSeconds: 300,
+  },
+  "mta-gtfs-rt-trip-updates": {
+    id: "mta-gtfs-rt-trip-updates",
+    name: "MTA Real-Time Trip Updates (GTFS-RT)",
+    moduleHints: ["transit_mobility"],
+    url: "https://api.mta.info/",
+    ttlSeconds: 60,
   },
 };
 
