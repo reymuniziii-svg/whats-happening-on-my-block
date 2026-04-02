@@ -41,6 +41,12 @@ interface CallItem {
   location_desc?: string;
 }
 
+interface ModuleFreshness {
+  refreshed_at_utc: string;
+  next_refresh_at_utc: string;
+  revalidate_seconds: number;
+}
+
 function clientKey(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || "unknown-client";
@@ -110,6 +116,19 @@ function toCallItem(row: CallsRow, index: number): CallItem {
   };
 }
 
+function computeFreshness(refreshedAtUtc: string): ModuleFreshness {
+  const dataset = DATASETS["erm2-nwe9"];
+  const revalidateSeconds = dataset?.ttlSeconds ?? 300;
+  const refreshed = new Date(refreshedAtUtc);
+  const nextRefresh = new Date(refreshed.getTime() + revalidateSeconds * 1000).toISOString();
+
+  return {
+    refreshed_at_utc: refreshedAtUtc,
+    next_refresh_at_utc: nextRefresh,
+    revalidate_seconds: revalidateSeconds,
+  };
+}
+
 export async function GET(
   request: NextRequest,
   context: {
@@ -119,8 +138,8 @@ export async function GET(
   const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
-  const limit = await checkRateLimit(`311-calls:${clientKey(request)}`, {
-    namespace: "all-311-calls",
+  const limit = await checkRateLimit(`v2-311-calls:${clientKey(request)}`, {
+    namespace: "v2-all-311-calls",
     maxRequests: 30,
     windowMs: 60_000,
   });
@@ -159,8 +178,9 @@ export async function GET(
     );
 
     const dataset = DATASETS["erm2-nwe9"];
-    const countCacheKey = `erm2-nwe9:all311:count:${block_id}:${days}:v1`;
-    const rowsCacheKey = `erm2-nwe9:all311:rows:${block_id}:${days}:${rowLimit}:v1`;
+    const countCacheKey = `erm2-nwe9:v2-all311:count:${block_id}:${days}:v1`;
+    const rowsCacheKey = `erm2-nwe9:v2-all311:rows:${block_id}:${days}:${rowLimit}:v1`;
+    const refreshedAtUtc = nowUtcIso();
 
     const [countRows, rows] = await Promise.all([
       memoryCache.getOrSet(countCacheKey, 900, () =>
@@ -186,37 +206,35 @@ export async function GET(
 
     return NextResponse.json(
       {
+        version: "2",
         total_calls: totalCalls,
         returned_calls: calls.length,
         truncated: totalCalls > calls.length,
         window_days: days,
         radius_m: radiusM,
-        generated_at_utc: nowUtcIso(),
+        generated_at_utc: refreshedAtUtc,
         methodology: `within ${radiusM}m; last ${days} days; sorted newest first`,
         source: {
           dataset_id: dataset.id,
           dataset_name: dataset.name,
           dataset_url: dataset.url,
         },
+        freshness: computeFreshness(refreshedAtUtc),
         calls,
-        _deprecation: "This v1 endpoint is deprecated. Please migrate to /api/v2/brief/by-block/[block_id]/311-calls for freshness metadata.",
       },
       {
         headers: withRequestIdHeader(requestId, {
           "Cache-Control": "s-maxage=120, stale-while-revalidate=600",
-          "Deprecation": "true",
-          "Sunset": "2026-06-01",
-          "Link": `</api/v2/brief/by-block/${block_id}/311-calls>; rel="successor-version"`,
         }),
       },
     );
   } catch (error) {
-    logger.warn({ request_id: requestId, error }, "311 calls route failed");
+    logger.warn({ request_id: requestId, error }, "v2 311 calls route failed");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load 311 calls", calls: [] },
       { status: 400, headers: withRequestIdHeader(requestId) },
     );
   } finally {
-    recordRouteTiming("/api/brief/by-block/[block_id]/311-calls", Date.now() - startedAt);
+    recordRouteTiming("/api/v2/brief/by-block/[block_id]/311-calls", Date.now() - startedAt);
   }
 }

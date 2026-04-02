@@ -14,7 +14,7 @@ export function PublishTools({ blockId }: PublishToolsProps) {
 
   const weeklyPath = `/b/${blockId}?lens=7d&mode=weekly`;
   const embedPath = `/embed/${blockId}`;
-  const apiPath = `/api/widget/${blockId}`;
+  const apiPath = `/api/v2/widget/${blockId}`;
 
   async function copyWeeklyLink() {
     const copied = await copyTextToClipboard(`${window.location.origin}${weeklyPath}`);

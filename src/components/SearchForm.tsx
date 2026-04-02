@@ -64,7 +64,7 @@ export function SearchForm() {
     const timer = window.setTimeout(async () => {
       setLoadingSuggestions(true);
       try {
-        const response = await fetch(`/api/geosearch/autocomplete?text=${encodeURIComponent(query)}&limit=6`, {
+        const response = await fetch(`/api/v2/geosearch/autocomplete?text=${encodeURIComponent(query)}&limit=6`, {
           signal: controller.signal,
         });
 

@@ -85,9 +85,13 @@ export async function GET(request: NextRequest) {
       block_id: blockId,
       share_path: `/b/${blockId}`,
       brief,
+      _deprecation: "This v1 endpoint is deprecated. Please migrate to /api/v2/brief for module freshness metadata.",
     }, {
       headers: withRequestIdHeader(requestId, {
         "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+        "Deprecation": "true",
+        "Sunset": "2026-06-01",
+        "Link": "</api/v2/brief>; rel=\"successor-version\"",
       }),
     });
   } catch (error) {

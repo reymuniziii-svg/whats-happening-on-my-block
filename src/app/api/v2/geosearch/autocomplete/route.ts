@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
   const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
-  const limit = await checkRateLimit(`autocomplete:${clientKey(request)}`, {
-    namespace: "autocomplete",
+  const limit = await checkRateLimit(`v2-autocomplete:${clientKey(request)}`, {
+    namespace: "v2-autocomplete",
     maxRequests: 60,
     windowMs: 60_000,
   });
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   const text = request.nextUrl.searchParams.get("text")?.trim() ?? "";
   if (text.length < 3) {
-    return NextResponse.json({ suggestions: [] }, { headers: withRequestIdHeader(requestId) });
+    return NextResponse.json({ version: "2", suggestions: [] }, { headers: withRequestIdHeader(requestId) });
   }
 
   const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "6", 10);
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { suggestions: [], error: `GeoSearch autocomplete failed (${response.status})` },
+        { version: "2", suggestions: [], error: `GeoSearch autocomplete failed (${response.status})` },
         { status: 502, headers: withRequestIdHeader(requestId) },
       );
     }
@@ -107,23 +107,20 @@ export async function GET(request: NextRequest) {
       .slice(0, safeLimit);
 
     return NextResponse.json(
-      { suggestions, _deprecation: "This v1 endpoint is deprecated. Please migrate to /api/v2/geosearch/autocomplete." },
+      { version: "2", suggestions },
       {
         headers: withRequestIdHeader(requestId, {
           "Cache-Control": "s-maxage=300, stale-while-revalidate=86400",
-          "Deprecation": "true",
-          "Sunset": "2026-06-01",
-          "Link": "</api/v2/geosearch/autocomplete>; rel=\"successor-version\"",
         }),
       },
     );
   } catch (error) {
-    logger.warn({ request_id: requestId, error }, "autocomplete route failed");
+    logger.warn({ request_id: requestId, error }, "v2 autocomplete route failed");
     return NextResponse.json(
-      { suggestions: [], error: "Autocomplete unavailable" },
+      { version: "2", suggestions: [], error: "Autocomplete unavailable" },
       { status: 502, headers: withRequestIdHeader(requestId) },
     );
   } finally {
-    recordRouteTiming("/api/geosearch/autocomplete", Date.now() - startedAt);
+    recordRouteTiming("/api/v2/geosearch/autocomplete", Date.now() - startedAt);
   }
 }

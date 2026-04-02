@@ -215,7 +215,7 @@ export function ModuleCard({
     }));
 
     try {
-      const response = await fetch(`/api/brief/by-block/${encodeURIComponent(blockId)}/311-calls?days=30`);
+      const response = await fetch(`/api/v2/brief/by-block/${encodeURIComponent(blockId)}/311-calls?days=30`);
       const json = (await response.json()) as All311CallsResponse;
       if (!response.ok) {
         throw new Error(json.error ?? "Could not load all nearby 311 calls.");

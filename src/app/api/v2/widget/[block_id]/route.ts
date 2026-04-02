@@ -1,4 +1,4 @@
-import { buildBrief } from "@/lib/brief/build-brief";
+import { buildBriefV2 } from "@/lib/brief/build-brief-v2";
 import { decodeBlockId } from "@/lib/brief/share-id";
 import { findModule, summaryMetrics, topModuleItems } from "@/lib/brief/summary-metrics";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
@@ -25,8 +25,8 @@ export async function GET(
   const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
-  const limit = await checkRateLimit(`widget:${clientKey(request)}`, {
-    namespace: "widget",
+  const limit = await checkRateLimit(`v2-widget:${clientKey(request)}`, {
+    namespace: "v2-widget",
     maxRequests: 30,
     windowMs: 60_000,
   });
@@ -65,11 +65,12 @@ export async function GET(
       zip_code: payload.zip_code,
     };
 
-    const brief = await buildBrief({ location });
+    const { brief, module_freshness } = await buildBriefV2({ location });
     const metrics = summaryMetrics(brief);
 
     return NextResponse.json(
       {
+        version: "2",
         block_id,
         address: brief.input.normalized_address,
         updated_at_utc: brief.updated_at_utc,
@@ -86,24 +87,21 @@ export async function GET(
           right_now: topModuleItems(findModule(brief, "right_now"), 3),
           top_311_types: topModuleItems(findModule(brief, "311_pulse"), 3),
         },
-        _deprecation: "This v1 endpoint is deprecated. Please migrate to /api/v2/widget/[block_id] for module freshness metadata.",
+        module_freshness,
       },
       {
         headers: withRequestIdHeader(requestId, {
           "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
-          "Deprecation": "true",
-          "Sunset": "2026-06-01",
-          "Link": `</api/v2/widget/${block_id}>; rel="successor-version"`,
         }),
       },
     );
   } catch (error) {
-    logger.warn({ request_id: requestId, error }, "widget route failed");
+    logger.warn({ request_id: requestId, error }, "v2 widget route failed");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to build widget payload" },
       { status: 400, headers: withRequestIdHeader(requestId) },
     );
   } finally {
-    recordRouteTiming("/api/widget/[block_id]", Date.now() - startedAt);
+    recordRouteTiming("/api/v2/widget/[block_id]", Date.now() - startedAt);
   }
 }
