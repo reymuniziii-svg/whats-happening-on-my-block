@@ -9,7 +9,6 @@ import { sanitationModule } from "@/lib/modules/sanitation";
 import { streetWorksModule } from "@/lib/modules/street-works";
 import { transitMobilityModule } from "@/lib/modules/transit-mobility";
 import type { ModuleBuilder, ModuleBuildContext } from "@/lib/modules/types";
-import { recordModuleTiming } from "@/lib/observability/metrics";
 import { parseWktLineStringToLatLon, toBlockKey } from "@/lib/utils/geo";
 import { daysAgoIso, nowUtcIso } from "@/lib/utils/time";
 import type { BriefMapFeature, BriefResponse, Module, ModuleId, ResolvedLocation } from "@/types/brief";
@@ -110,11 +109,9 @@ export async function buildBriefWithDiagnostics(
       try {
         const moduleData = await builder.build(context);
         moduleFetchMs[id] = Date.now() - startedAt;
-        recordModuleTiming(id, moduleFetchMs[id] ?? 0);
         return moduleData;
       } catch (error) {
         moduleFetchMs[id] = Date.now() - startedAt;
-        recordModuleTiming(id, moduleFetchMs[id] ?? 0);
         throw error;
       }
     }),

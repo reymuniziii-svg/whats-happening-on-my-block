@@ -3,7 +3,6 @@ import { buildBriefV2 } from "@/lib/brief/build-brief-v2";
 import { encodeBlockId } from "@/lib/brief/share-id";
 import { resolveLocation } from "@/lib/geocode/resolve-location";
 import { logger } from "@/lib/observability/logger";
-import { recordRouteTiming } from "@/lib/observability/metrics";
 import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
 import type { ResolvedLocation } from "@/types/brief";
@@ -32,7 +31,6 @@ function toBlockId(location: ResolvedLocation): string {
 }
 
 export async function GET(request: NextRequest) {
-  const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
   const limit = await checkRateLimit(clientKey(request), {
@@ -100,7 +98,5 @@ export async function GET(request: NextRequest) {
       { error: error instanceof Error ? error.message : "Failed to build v2 brief" },
       { status: 500, headers: withRequestIdHeader(requestId) },
     );
-  } finally {
-    recordRouteTiming("/api/v2/brief", Date.now() - startedAt);
   }
 }

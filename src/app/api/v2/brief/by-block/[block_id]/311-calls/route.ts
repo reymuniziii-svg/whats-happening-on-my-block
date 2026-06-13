@@ -4,7 +4,6 @@ import { decodeBlockId } from "@/lib/brief/share-id";
 import { memoryCache } from "@/lib/cache/memory-cache";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
 import { logger } from "@/lib/observability/logger";
-import { recordRouteTiming } from "@/lib/observability/metrics";
 import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import { sodaFetch } from "@/lib/soda/client";
 import { andClauses, betweenIso, withinCircle } from "@/lib/soda/query-builders";
@@ -135,7 +134,6 @@ export async function GET(
     params: Promise<{ block_id: string }>;
   },
 ) {
-  const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
   const limit = await checkRateLimit(`v2-311-calls:${clientKey(request)}`, {
@@ -234,7 +232,5 @@ export async function GET(
       { error: error instanceof Error ? error.message : "Failed to load 311 calls", calls: [] },
       { status: 400, headers: withRequestIdHeader(requestId) },
     );
-  } finally {
-    recordRouteTiming("/api/v2/brief/by-block/[block_id]/311-calls", Date.now() - startedAt);
   }
 }

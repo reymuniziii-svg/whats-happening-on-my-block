@@ -66,7 +66,7 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
           directly.
         </p>
         <p>
-          <a href={`/api/brief/by-block/${block_id}`}>Open raw brief JSON</a>
+          <a href={`/api/v2/brief/by-block/${block_id}`}>Open raw brief JSON</a>
         </p>
         <p>
           <Link href="/">Back to search</Link>

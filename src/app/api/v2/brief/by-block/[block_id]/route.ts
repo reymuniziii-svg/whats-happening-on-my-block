@@ -2,7 +2,6 @@ import { memoryCache } from "@/lib/cache/memory-cache";
 import { buildBriefV2 } from "@/lib/brief/build-brief-v2";
 import { decodeBlockId } from "@/lib/brief/share-id";
 import { logger } from "@/lib/observability/logger";
-import { recordRouteTiming } from "@/lib/observability/metrics";
 import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
 import type { ResolvedLocation } from "@/types/brief";
@@ -22,7 +21,6 @@ export async function GET(
     params: Promise<{ block_id: string }>;
   },
 ) {
-  const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
   const limit = await checkRateLimit(clientKey(request), {
@@ -87,7 +85,5 @@ export async function GET(
       { error: error instanceof Error ? error.message : "Failed to decode block id" },
       { status: 400, headers: withRequestIdHeader(requestId) },
     );
-  } finally {
-    recordRouteTiming("/api/v2/brief/by-block/[block_id]", Date.now() - startedAt);
   }
 }

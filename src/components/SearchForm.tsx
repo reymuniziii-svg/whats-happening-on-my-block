@@ -127,7 +127,7 @@ export function SearchForm() {
 
     try {
       const query = mode === "address" ? `address=${encodeURIComponent(trimmed)}` : `bbl=${encodeURIComponent(trimmed)}`;
-      const response = await fetch(`/api/brief?${query}`);
+      const response = await fetch(`/api/v2/brief?${query}`);
       const json = (await response.json()) as { error?: string; share_path?: string };
 
       if (!response.ok || !json.share_path) {

@@ -3,7 +3,6 @@ import { decodeBlockId } from "@/lib/brief/share-id";
 import { findModule, summaryMetrics, topModuleItems } from "@/lib/brief/summary-metrics";
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
 import { logger } from "@/lib/observability/logger";
-import { recordRouteTiming } from "@/lib/observability/metrics";
 import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import type { ResolvedLocation } from "@/types/brief";
 import { NextRequest, NextResponse } from "next/server";
@@ -22,7 +21,6 @@ export async function GET(
     params: Promise<{ block_id: string }>;
   },
 ) {
-  const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
   const limit = await checkRateLimit(`v2-widget:${clientKey(request)}`, {
@@ -101,7 +99,5 @@ export async function GET(
       { error: error instanceof Error ? error.message : "Failed to build widget payload" },
       { status: 400, headers: withRequestIdHeader(requestId) },
     );
-  } finally {
-    recordRouteTiming("/api/v2/widget/[block_id]", Date.now() - startedAt);
   }
 }

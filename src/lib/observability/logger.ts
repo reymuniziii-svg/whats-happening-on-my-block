@@ -20,7 +20,3 @@ export const logger = pino({
     remove: true,
   },
 });
-
-export function moduleLogger(requestId: string, route: string) {
-  return logger.child({ request_id: requestId, route });
-}

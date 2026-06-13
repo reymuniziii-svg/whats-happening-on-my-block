@@ -1,6 +1,5 @@
 import { checkRateLimit } from "@/lib/ratelimit/memory-rate-limit";
 import { logger } from "@/lib/observability/logger";
-import { recordRouteTiming } from "@/lib/observability/metrics";
 import { requestIdFromRequest, withRequestIdHeader } from "@/lib/observability/request-id";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -27,7 +26,6 @@ function clientKey(request: NextRequest): string {
 }
 
 export async function GET(request: NextRequest) {
-  const startedAt = Date.now();
   const requestId = requestIdFromRequest(request);
 
   const limit = await checkRateLimit(`v2-autocomplete:${clientKey(request)}`, {
@@ -120,7 +118,5 @@ export async function GET(request: NextRequest) {
       { version: "2", suggestions: [], error: "Autocomplete unavailable" },
       { status: 502, headers: withRequestIdHeader(requestId) },
     );
-  } finally {
-    recordRouteTiming("/api/v2/geosearch/autocomplete", Date.now() - startedAt);
   }
 }
