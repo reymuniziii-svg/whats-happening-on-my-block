@@ -1,4 +1,5 @@
 import type { ResolvedLocation } from "@/types/brief";
+import { memoryCache } from "@/lib/cache/memory-cache";
 import { geoclientIsConfigured, geoclientResolveAddress, geoclientResolveBbl } from "@/lib/geocode/geoclient";
 import { geosearchResolve } from "@/lib/geocode/geosearch";
 
@@ -21,11 +22,24 @@ function normalizeBorough(value?: string): string | undefined {
     .join(" ");
 }
 
+// Address/BBL → location is stable, so cache resolved locations (Redis-backed when
+// configured) to avoid repeat geocoder round-trips — including the sequential GeoSearch
+// fallback on a Geoclient miss. Failures throw out of the loader and are not cached.
+const LOCATION_CACHE_TTL_SECONDS = 604_800; // 7 days
+
 export async function resolveLocation(input: ResolveLocationInput): Promise<ResolvedLocation> {
   if (!input.address && !input.bbl) {
     throw new Error("Either address or bbl is required");
   }
 
+  const cacheKey = input.bbl
+    ? `location:bbl:${input.bbl.replace(/\D/g, "")}`
+    : `location:addr:${(input.address ?? "").trim().toLowerCase()}`;
+
+  return memoryCache.getOrSet(cacheKey, LOCATION_CACHE_TTL_SECONDS, () => resolveLocationUncached(input));
+}
+
+async function resolveLocationUncached(input: ResolveLocationInput): Promise<ResolvedLocation> {
   let resolved: ResolvedLocation | null = null;
 
   if (input.bbl) {

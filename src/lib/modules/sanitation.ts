@@ -50,11 +50,16 @@ export async function buildSanitationModule(context: ModuleBuildContext): Promis
   try {
     const cacheKey = `sanitation:${context.blockKey}`;
     const result = await memoryCache.getOrSet(cacheKey, 86_400, async () => {
-      const preferred = await queryPreferredDataset(context.location.lat, context.location.lon).catch(() => null);
+      // The preferred dataset (p7k6-2pm8) is frequently sparse, so the fallback fires often.
+      // Query both in parallel and prefer the primary when it returns usable rows, instead of
+      // paying a serial round-trip on every miss.
+      const [preferred, fallback] = await Promise.all([
+        queryPreferredDataset(context.location.lat, context.location.lon).catch(() => null),
+        queryFallbackDataset(context.location.lat, context.location.lon).catch(() => null),
+      ]);
       if (preferred) {
         return { row: preferred, source: "p7k6-2pm8" as const };
       }
-      const fallback = await queryFallbackDataset(context.location.lat, context.location.lon);
       return { row: fallback, source: "rv63-53db" as const };
     });
 
