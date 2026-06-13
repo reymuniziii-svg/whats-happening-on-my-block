@@ -109,22 +109,29 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
       `longitude between ${bbox.minLon} and ${bbox.maxLon}`,
     );
 
-    const complaintWhere = andClauses(
-      compareIso("date_entered", ">=", context.window90dIso),
-      binPredicate("bin", context.location.bin),
-    );
+    // DOB complaints (eabe-havv) are only matchable by building identifier (BIN). Without one,
+    // a date-only WHERE would count complaints citywide, so we skip the query instead.
+    const hasComplaintLocator = Boolean(context.location.bin);
+    const complaintWhere = hasComplaintLocator
+      ? andClauses(compareIso("date_entered", ">=", context.window90dIso), binPredicate("bin", context.location.bin))
+      : undefined;
 
     const window12mDate = new Date(context.window12mIso);
     const threshold12m = `${window12mDate.getUTCFullYear()}${String(window12mDate.getUTCMonth() + 1).padStart(2, "0")}${String(
       window12mDate.getUTCDate(),
     ).padStart(2, "0")}`;
+    // ECB violations (6bgk-3dad) are matchable by tax block/lot (from BBL) or BIN. Without either,
+    // a date-only WHERE would count violations citywide, so we skip the query instead.
     const split = splitBbl(context.location.bbl);
-    const violationWhere = andClauses(
-      `issue_date >= '${threshold12m}'`,
-      split.block ? `block='${split.block}'` : undefined,
-      split.lot ? `lot='${split.lot}'` : undefined,
-      binPredicate("bin", context.location.bin),
-    );
+    const hasViolationLocator = Boolean(split.block || context.location.bin);
+    const violationWhere = hasViolationLocator
+      ? andClauses(
+          `issue_date >= '${threshold12m}'`,
+          split.block ? `block='${split.block}'` : undefined,
+          split.lot ? `lot='${split.lot}'` : undefined,
+          binPredicate("bin", context.location.bin),
+        )
+      : undefined;
 
     const results = await Promise.allSettled([
       memoryCache.getOrSet(`ipu4-2q9a:${context.blockKey}:${context.window90dIso}`, 900, () =>
@@ -259,8 +266,8 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
     moduleCard.stats = [
       { label: "DOB permits (90d)", value: issuanceFiltered.length + nowFiltered.length },
       { label: "Top work type", value: topWorkType },
-      { label: "DOB complaints (90d)", value: complaintsTotal },
-      { label: "ECB violations (12m)", value: violationsTotal },
+      { label: "DOB complaints (90d)", value: hasComplaintLocator ? complaintsTotal : "N/A" },
+      { label: "ECB violations (12m)", value: hasViolationLocator ? violationsTotal : "N/A" },
     ];
 
     moduleCard.items = [
@@ -294,17 +301,24 @@ export async function buildDobPermitsModule(context: ModuleBuildContext): Promis
       })),
     ].slice(0, 12);
 
-    if (!context.location.bin) {
-      moduleWarnings.push("BIN metadata missing; DOB complaints are likely undercounted for this query.");
+    if (!hasComplaintLocator) {
+      moduleWarnings.push(
+        "DOB complaints are matched by building identifier (BIN); this address resolved without one, so complaint counts are omitted.",
+      );
     }
-    if (!context.location.bbl) {
-      moduleWarnings.push("BBL metadata missing; ECB violation matching uses available BIN only.");
+    if (!hasViolationLocator) {
+      moduleWarnings.push(
+        "ECB violations are matched by tax lot (BBL) or building (BIN); this address resolved without either, so violation counts are omitted.",
+      );
     }
 
     if (moduleWarnings.length > 0) {
       moduleCard.status = "partial";
       moduleCard.warnings = moduleWarnings;
-      moduleCard.coverage_note = "Non-geocoded DOB datasets rely on BIN/BBL matching in v1.";
+    }
+    if (!hasComplaintLocator || !hasViolationLocator) {
+      moduleCard.coverage_note =
+        "DOB complaints and ECB violations are matched by building (BIN) or tax lot (BBL). When an address resolves without one, those counts are omitted rather than estimated citywide.";
     }
 
     if (latestViolation) {

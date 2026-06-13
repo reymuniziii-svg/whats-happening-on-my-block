@@ -1,7 +1,14 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 function secret(): string {
-  return process.env.WATCHLIST_SIGNING_SECRET || "dev-watchlist-secret-change-me";
+  const configured = process.env.WATCHLIST_SIGNING_SECRET;
+  if (configured) {
+    return configured;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("WATCHLIST_SIGNING_SECRET must be set in production");
+  }
+  return "dev-watchlist-secret-change-me";
 }
 
 function signValue(value: string): string {
