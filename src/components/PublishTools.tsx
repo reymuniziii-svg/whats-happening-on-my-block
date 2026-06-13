@@ -8,19 +8,11 @@ interface PublishToolsProps {
 }
 
 export function PublishTools({ blockId }: PublishToolsProps) {
-  const [weeklyStatus, setWeeklyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [embedStatus, setEmbedStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [apiStatus, setApiStatus] = useState<"idle" | "copied" | "failed">("idle");
 
-  const weeklyPath = `/b/${blockId}?lens=7d&mode=weekly`;
   const embedPath = `/embed/${blockId}`;
   const apiPath = `/api/v2/widget/${blockId}`;
-
-  async function copyWeeklyLink() {
-    const copied = await copyTextToClipboard(`${window.location.origin}${weeklyPath}`);
-    setWeeklyStatus(copied ? "copied" : "failed");
-    setTimeout(() => setWeeklyStatus("idle"), 1800);
-  }
 
   async function copyEmbedCode() {
     const src = `${window.location.origin}${embedPath}`;
@@ -40,13 +32,6 @@ export function PublishTools({ blockId }: PublishToolsProps) {
     <details className="publish-tools">
       <summary>Publish</summary>
       <div className="publish-tools-menu">
-        <button type="button" onClick={copyWeeklyLink}>
-          {weeklyStatus === "copied"
-            ? "Weekly Link Copied"
-            : weeklyStatus === "failed"
-              ? "Could not copy weekly link"
-              : "Copy weekly digest link"}
-        </button>
         <button type="button" onClick={copyEmbedCode}>
           {embedStatus === "copied"
             ? "Embed Code Copied"

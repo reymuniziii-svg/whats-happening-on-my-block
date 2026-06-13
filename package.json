@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,22 +14,17 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "capture:screenshots": "tsx scripts/capture-screenshots.ts",
-    "capture:demo": "tsx scripts/capture-demo.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "capture:demo": "tsx scripts/capture-demo.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.3",
     "@vercel/analytics": "^2.0.1",
-    "googleapis": "^171.4.0",
     "gtfs-realtime-bindings": "^1.1.1",
     "leaflet": "^1.9.4",
     "next": "16.1.6",
     "p-limit": "^7.3.0",
     "pino": "^10.3.1",
-    "prisma": "^6.16.0",
     "proj4": "^2.20.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",

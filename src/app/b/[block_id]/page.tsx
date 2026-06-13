@@ -6,8 +6,6 @@ import { BriefInteractivePanels } from "@/components/BriefInteractivePanels";
 import { PublishTools } from "@/components/PublishTools";
 import { ShareButton } from "@/components/ShareButton";
 import { SummaryCardButton } from "@/components/SummaryCardButton";
-import { WeeklyDigestStrip } from "@/components/WeeklyDigestStrip";
-import { WatchlistBar } from "@/components/WatchlistBar";
 import type { BriefResponse, ResolvedLocation } from "@/types/brief";
 import type { BriefResponseV2 } from "@/types/brief-v2";
 
@@ -16,7 +14,7 @@ export const maxDuration = 60;
 
 interface BriefPageProps {
   params: Promise<{ block_id: string }>;
-  searchParams: Promise<{ lens?: string; mode?: string }>;
+  searchParams: Promise<{ lens?: string }>;
 }
 
 function toTimeLens(value?: string): "now" | "24h" | "7d" | "30d" {
@@ -30,7 +28,6 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
   const { block_id } = await params;
   const query = await searchParams;
   const initialTimeLens = toTimeLens(query.lens);
-  const weeklyMode = query.mode === "weekly";
 
   let location: ResolvedLocation;
   try {
@@ -98,8 +95,6 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
         </div>
       </header>
 
-      {weeklyMode ? <WeeklyDigestStrip brief={brief} /> : null}
-      <WatchlistBar currentBlockId={block_id} currentAddress={brief.input.normalized_address} />
       <BriefInteractivePanels
         brief={brief}
         blockId={block_id}

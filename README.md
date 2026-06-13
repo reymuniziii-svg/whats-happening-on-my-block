@@ -35,25 +35,20 @@ Every module shows:
 - NYC Open Data SODA APIs
 - Geoclient v2 (preferred) with NYC GeoSearch fallback
 - Redis-backed cache/rate-limit (Upstash) with in-memory fallback
-- Prisma + Postgres for optional watchlist/digest persistence
-- Google Sheets API (optional weekly digest export)
 
 ## Routes
 
 - `/` search page
 - `/b/{block_id}` shareable brief page
+- `/embed/{block_id}` embeddable widget
 - `/about`
 - `/methodology`
-- `GET /api/brief?address=...`
-- `GET /api/brief?bbl=...`
-- `GET /api/brief/by-block/{block_id}`
 - `GET /api/v2/brief?address=...`
 - `GET /api/v2/brief?bbl=...`
 - `GET /api/v2/brief/by-block/{block_id}`
-- `GET /api/v2/watchlist`
-- `POST /api/v2/watchlist/blocks`
-- `DELETE /api/v2/watchlist/blocks/{block_id}`
-- `POST /api/internal/cron/digest` (protected)
+- `GET /api/v2/brief/by-block/{block_id}/311-calls`
+- `GET /api/v2/widget/{block_id}`
+- `GET /api/v2/geosearch/autocomplete?text=...`
 - `GET /api/health`
 
 ## Data model
@@ -76,8 +71,6 @@ Includes:
 ```bash
 npm install
 cp .env.example .env.local
-# Optional (when DATABASE_URL is configured):
-npx prisma migrate dev
 npm run dev
 ```
 
@@ -95,25 +88,15 @@ Optional (recommended):
 - `GEOCLIENT_APP_ID`
 - `GEOCLIENT_APP_KEY`
 
-Optional reliability + persistence:
+Optional reliability:
 
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
-- `DATABASE_URL`
-- `WATCHLIST_SIGNING_SECRET`
-- `CRON_SECRET`
 
 Optional transit feeds:
 
 - `MTA_API_KEY`
 - `MTA_SERVICE_ALERTS_URL`
-
-Optional Google Sheets digest export:
-
-- `GOOGLE_SHEETS_SPREADSHEET_ID`
-- `GOOGLE_SHEETS_WORKSHEET_NAME`
-- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
-- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
 
 ## Production reliability setup
 
@@ -155,4 +138,4 @@ See:
 
 ## Notes on sanitation source fallback
 
-As of February 17, 2026, `p7k6-2pm8` is sparse via SODA API responses in this implementation path. v1 uses `rv63-53db` fallback while keeping `p7k6-2pm8` documented as the preferred source.
+As of February 17, 2026, `p7k6-2pm8` is sparse via SODA API responses in this implementation path. The app uses `rv63-53db` as a fallback while keeping `p7k6-2pm8` documented as the preferred source.
