@@ -1,141 +1,107 @@
-# What's Happening on My Block? (NYC Block Brief)
+# What's Happening on My Block?
 
-A public, mobile-first NYC address tool that generates a shareable block brief in seconds.
+Type one NYC address and get a shareable, plain-English brief of what is actually going on around that block: construction, street closures, collisions, 311 complaints, sanitation, nearby events, and live subway arrivals.
 
-Live app: https://whats-happening-on-my-block.vercel.app
+**Live app: https://whats-happening-on-my-block.vercel.app**
 
-Repo: https://github.com/reymuniziii-svg/whats-happening-on-my-block
+![The address search screen of the NYC Block Brief app](submission/hero-1.png)
 
 ## What it does
 
-Given one NYC address (or BBL), the app returns a single-page brief with:
+Give it an address or a BBL and it returns a single mobile-first page that pulls from NYC Open Data and stitches the signals into modules a non-technical neighbor can read:
 
-- Right now strip (active closures, street works, and film permits)
-- Construction and DOB signals
+- Right now: active closures, street works, and film permits
+- Construction and DOB permit activity
 - Street disruption signals
 - Collision safety trends
-- 311 pulse with 30-day deltas
-- Sanitation area frequencies
+- 311 complaint pulse with 30-day deltas
+- Sanitation pickup frequencies
 - Upcoming events and film activity
+- Live MTA subway arrivals
 
-Every module shows:
-
-- Plain-English headline
-- "What this means for you" impact sentence
-- Low/Medium/High severity chip with transparent thresholds
-- 2-4 key metrics
-- Expandable details list
-- Data source links
-- "How this is calculated" methodology text
+Every module carries a plain-English headline, a "what this means for you" line, a Low/Medium/High severity chip with published thresholds, two to four key metrics, expandable detail, source links, and a "how this is calculated" note. The brief is built so a failing data source degrades that one module instead of taking down the page.
 
 ## Stack
 
-- Next.js 16 (App Router) + TypeScript
-- React + Leaflet (OpenStreetMap)
-- NYC Open Data SODA APIs
-- Geoclient v2 (preferred) with NYC GeoSearch fallback
-- Redis-backed cache/rate-limit (Upstash) with in-memory fallback
+- Next.js 16 (App Router), React 19, TypeScript
+- Leaflet and React Leaflet over OpenStreetMap tiles
+- NYC Open Data SODA APIs for civic datasets
+- NYC Geoclient v2 geocoding, with NYC GeoSearch as a fallback
+- MTA GTFS-realtime for subway arrivals
+- Upstash Redis for caching and rate limiting, with an in-memory fallback
+- Zod for validation, Pino for logging
+- Vitest for unit and integration tests, Playwright for end-to-end
+
+## Quickstart
+
+Requires Node 24 (matches CI). The repo sets `legacy-peer-deps=true` in `.npmrc`, so a plain install works.
+
+```bash
+npm install
+cp .env.example .env.local   # then set SOCRATA_APP_TOKEN
+npm run dev
+```
+
+Open http://127.0.0.1:3000.
+
+## Environment variables
+
+Document only. Never commit real values. See `.env.example`.
+
+Required:
+
+- `SOCRATA_APP_TOKEN`: NYC Open Data (Socrata) app token for the SODA APIs
+- `NEXT_PUBLIC_APP_URL`: base URL of the app (for example `http://127.0.0.1:3000` in dev)
+
+Optional:
+
+- `GEOCLIENT_APP_ID`, `GEOCLIENT_APP_KEY`: NYC Geoclient v2 credentials. Without them the app falls back to NYC GeoSearch.
+- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis for shared cache and rate limiting. Without them the app uses an in-memory cache.
+- `MTA_API_KEY`, `MTA_SERVICE_ALERTS_URL`: MTA feed auth and service-alert override for the transit module.
 
 ## Routes
 
-- `/` search page
-- `/b/{block_id}` shareable brief page
-- `/embed/{block_id}` embeddable widget
-- `/about`
-- `/methodology`
-- `GET /api/v2/brief?address=...`
-- `GET /api/v2/brief?bbl=...`
+Pages:
+
+- `/`: address search
+- `/b/{block_id}`: shareable brief
+- `/embed/{block_id}`: embeddable widget
+- `/about`, `/methodology`
+
+API:
+
+- `GET /api/v2/brief?address=...` or `?bbl=...`
 - `GET /api/v2/brief/by-block/{block_id}`
 - `GET /api/v2/brief/by-block/{block_id}/311-calls`
 - `GET /api/v2/widget/{block_id}`
 - `GET /api/v2/geosearch/autocomplete?text=...`
 - `GET /api/health`
 
-## Data model
-
-`BriefResponse` lives at:
-
-- `src/types/brief.ts`
-
-Includes:
-
-- `input`
-- `location`
-- `updated_at_utc`
-- `parameters`
-- `modules[]`
-- `map`
-
-## Quickstart
-
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-Open [http://127.0.0.1:3000](http://127.0.0.1:3000)
-
-## Environment variables
-
-Required:
-
-- `SOCRATA_APP_TOKEN`
-- `NEXT_PUBLIC_APP_URL`
-
-Optional (recommended):
-
-- `GEOCLIENT_APP_ID`
-- `GEOCLIENT_APP_KEY`
-
-Optional reliability:
-
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-
-Optional transit feeds:
-
-- `MTA_API_KEY`
-- `MTA_SERVICE_ALERTS_URL`
-
-## Production reliability setup
-
-- Deploy on Vercel and set `main` as production branch for auto-deploys.
-- Keep the CI workflow green (`.github/workflows/ci.yml`) to block broken merges.
-- Monitor `GET /api/health` with an external uptime monitor (UptimeRobot or Better Stack).
-- The brief page has route-level loading/error boundaries, and each module degrades independently if a source fails.
-
 ## Tests
 
 ```bash
-npm run test
-npm run test:e2e
+npm run test        # vitest: unit + integration
+npm run test:e2e    # playwright
+npm run lint
+npm run typecheck
 ```
 
-## Scripts
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests, e2e, and build on Node 24. A separate `uptime-check.yml` pings `/api/health`.
 
-```bash
-npm run capture:screenshots
-npm run capture:demo
-```
+## Deploy
 
-These generate Gallery assets in `submission/`:
+Built for Vercel with `main` as the production branch. Point an external uptime monitor at `/api/health`. The brief page has route-level loading and error boundaries, and modules degrade independently.
 
-- `hero-1.png`
-- `hero-2.png`
-- `demo.gif` (or `demo.webm` when ffmpeg is unavailable)
+## Extending it
 
-## Add a module
+- Add a data module: `docs/add-module.md`
+- Methodology and dataset list: `docs/methodology.md`, `submission/datasets.md`
+- Response shape: `BriefResponse` in `src/types/brief.ts`
 
-See:
+## Data note
 
-- `docs/add-module.md`
+As of February 17, 2026, the sanitation dataset `p7k6-2pm8` returned sparse results over the SODA API on this code path, so the app reads `rv63-53db` as a fallback while keeping `p7k6-2pm8` documented as the preferred source.
 
-## Methodology and datasets
+## License
 
-- `docs/methodology.md`
-- `submission/datasets.md`
-
-## Notes on sanitation source fallback
-
-As of February 17, 2026, `p7k6-2pm8` is sparse via SODA API responses in this implementation path. The app uses `rv63-53db` as a fallback while keeping `p7k6-2pm8` documented as the preferred source.
+MIT. See [LICENSE](LICENSE).
